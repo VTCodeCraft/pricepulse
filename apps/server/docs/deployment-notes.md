@@ -35,11 +35,26 @@ checked for product/option; manifest-named price and stock read with `textConten
 All runs: handshakes 200, zero 401/403, final quote matched the requested product and option, no pending value
 returned (pending seen 5 times and re-checked), real quote 500s recovered by the page (3 times).
 
-## Implications
+## Rules that follow from these measurements
 
-- Run one browser at a time, sequentially, and close it after each run.
-- Size timeouts for 0.15 CPU: allow ≥ 45 s for the price to settle and ≥ 90 s per attempt.
-- A cold start (~52 s) is longer than a typical cron request timeout, so the scrape trigger must answer
-  immediately and a pre-wake or keep-warm ping will likely be needed — decide in Phase 6 against the cron service's
-  measured timeout.
-- Supabase must be reached through its IPv4 pooler, not the IPv6-only direct host.
+- **Memory is constrained (512 MB):** one browser at a time, scrapes run sequentially, every context closed in
+  `finally`. The scraper defaults follow this (`src/config.js`).
+- **Slow CPU (0.15):** timeouts are sized for Render, not for a laptop — 60 s for the price to settle,
+  120 s per try (`SCRAPER_QUOTE_TIMEOUT_MS`, `SCRAPER_TRY_TIMEOUT_MS`).
+- **Cold start ~52 s:** the scrape trigger must return `202` immediately and scrape in the background; whether a
+  pre-wake ping is needed is decided in Phase 6 against the cron service's measured timeout.
+- **Outbound is IPv4-only:** Supabase must be reached through its IPv4 pooler, not the IPv6-only direct host.
+
+## Phase 3 scraper in the production image
+
+The Phase 3 scraper (`src/cli.js`) was run inside this Dockerfile's image on the dev machine with Render's measured
+limits (`docker run --memory=512m --memory-swap=512m --cpus=0.15`, `NODE_ENV=production`):
+2179 / o1, 2852 / o1 and 2331 / o1 all succeeded on the first try in 18–37 s, and `--inject` was refused.
+
+## Consistency notes
+
+- **Node versions differ:** local development uses Node 22.23; the Playwright image runs Node 24.20. Both satisfy
+  `engines: >=22.12` and every check passed on both, but a Node-24-only difference would first show up on Render.
+- **Local headed runs:** on the development Windows machine the bundled Chromium binary is blocked from starting
+  (`spawn UNKNOWN`, "Permission denied"; the headless shell is not blocked). Headed runs there use the installed
+  Chrome via `SCRAPER_BROWSER_CHANNEL=chrome`. Production leaves that variable unset.

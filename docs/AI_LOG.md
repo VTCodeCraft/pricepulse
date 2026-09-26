@@ -60,3 +60,15 @@ I review every AI-generated change before committing it.
 - **Evidence:** all 9 first-run probes returned empty bodies; a verbose retry showed `HTTP 400` in 0.02 s and a 116-character "secret" instead of 32.
 - **Fix:** match only `^DEBUG_PROBE_SECRET=` and take everything after the first `=`; the rerun passed 9/9.
 - **Lesson:** check a harness's inputs before trusting its results; an instant 400 means the request never reached the code under test.
+
+### 9. Page-structure check rejected a normal loading state (Phase 3)
+- **Mistake:** `checkDomContract` required a price button inside the panel in every state.
+- **Evidence:** the test on the real `state-retrying-injected` fixture failed: while the store is retrying, the panel shows a spinner and has no button. In production this would have reported `layout_changed` mid-retry.
+- **Fix:** require the button only in the locked, ready and failed states.
+- **Lesson:** check structural rules against every captured state, not only the happy path.
+
+### 10. Browser launch failures were unreadable and mislabelled (Phase 3)
+- **Mistake:** a failed Chromium launch surfaced as `unexpected` with Playwright's full multi-line call log in every log line.
+- **Evidence:** the first headed run on Windows printed three pages of launch arguments for `spawn UNKNOWN`.
+- **Fix:** `launchBrowser` throws `browser_launch_failed` with the first line only; all Playwright errors are cut to their first line.
+- **Lesson:** error messages are part of the product: one line, a clear code.

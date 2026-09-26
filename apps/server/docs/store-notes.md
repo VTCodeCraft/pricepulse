@@ -80,7 +80,8 @@ Observed:
 Observed later (Phase 2, 22 probe runs): spaced `₹1 432`, euro `₹36.312,00`, and every character
 separated by NBSP + zero-width space (shown as ␣: `₹␣1␣,␣4␣3␣2`).
 
-Not verified: `priceCarrier: "split"` (one span per character) — present in the bundle, never seen.
+Also observed (Phase 3, revision 633004): `priceCarrier: "split"` — the price is a `<strong>` with one `<span>`
+per character and zero-width spaces between them; its `textContent` reads like the zero-width format above.
 
 Recon cross-check: during capture, the store's decoded quote was also read from React internals. It matched the
 manifest-selected price element and stock pill in 24 of 24 checks, so the DOM plus the network responses are enough.
@@ -99,21 +100,21 @@ Observed:
 
 Observed:
 
-| Field | 07:02 | 13:26 |
-|---|---|---|
-| revision / variant | 633001 / 1 | 633003 / 3 |
-| validUntil | 07:43:38 | 15:09:15 |
-| classes | `*-x1` (price `fgy-x1`) | `*-w7` (price `kjr-w7`) |
-| priceTag | `data` | `span` |
-| order | stock, seller, delivery, rating | rating, delivery, seller, stock |
-| ratingAria | true | false |
-| priceCarrier, sellerTitle | text, true | text, true |
+| Field | 07:02 | 13:26 | 15:48 |
+|---|---|---|---|
+| revision / variant | 633001 / 1 | 633003 / 3 | 633004 / 0 |
+| validUntil | 07:43:38 | 15:09:15 | 20:56:04 |
+| classes | `*-x1` (price `fgy-x1`) | `*-w7` (price `kjr-w7`) | `*-h8` (price `amt-h8`, stock `inv-h8`) |
+| priceTag | `data` | `span` | `strong` |
+| order | stock, seller, delivery, rating | rating, delivery, seller, stock | seller, rating, stock, delivery |
+| ratingAria | true | false | false |
+| priceCarrier, sellerTitle | text, true | text, true | **split**, false |
 
-- Same key set and value types in both; identical on repeated requests within a revision.
-- The product page loads the manifest on every visit.
+- Same key set and value types in all three; identical on repeated requests within a revision.
+- The product page loads the manifest on every visit. The Phase 3 scraper followed 633003 → 633004 without changes.
 
-Not verified: how often revisions change (two seen, about 6 h apart), and any change beyond renamed
-classes/tags/order — no incompatible change has been seen.
+Not verified: the exact rotation schedule (three revisions seen; the last two lasted about 6 h each), and any
+change beyond renamed classes/tags/order/flags — no incompatible change has been seen.
 
 ## 9. Errors and rate limits
 

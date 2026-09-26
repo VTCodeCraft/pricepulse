@@ -11,6 +11,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "scrape": "node --env-file-if-exists=.env src/cli.js",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"
   },
@@ -22,6 +23,7 @@
   },
   "dependencies": {
     "express": "^5.2.1",
+    "linkedom": "^0.18.13",
     "playwright": "1.63.0"
   }
 }
