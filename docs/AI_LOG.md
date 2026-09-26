@@ -42,3 +42,21 @@ I review every AI-generated change before committing it.
 - **Evidence:** the test failed on the correct `Rs. 1,393.00` fixture because `outerHTML` writes U+00A0 as `&nbsp;`; `od -c` showed bytes `302 240` in the source.
 - **Fix:** decode `&nbsp;` before comparing, written as `String.fromCharCode(0xa0)`.
 - **Lesson:** the price parser must treat U+00A0 as a space and work on text content, not serialized HTML.
+
+### 6. Created and pushed the repo on the wrong GitHub account (Phase 0)
+- **Mistake:** created the GitHub repo with the `gh` CLI without checking which account it was logged into; it was my company account (`Vishesh-Gudz`), not my personal one.
+- **Evidence:** a later plain `git push` failed with `Permission to Vishesh-Gudz/pricepulse.git denied to VTCodeCraft`, which showed two different accounts were in use.
+- **Fix:** created `VTCodeCraft/pricepulse`, pointed `origin` at it, and pushed the same history there.
+- **Lesson:** confirm the target account/owner before any action that publishes code.
+
+### 7. Invisible characters in a regex, again (Phase 2 probe)
+- **Mistake:** the probe's price parser was written with a literal U+00A0 and U+200B inside a regex character class, repeating mistake 5.
+- **Evidence:** a code-point scan of `src/debug/probe.js` found 1 NBSP and 1 zero-width space; `od -c` showed the raw bytes in the regex.
+- **Fix:** replaced them with a named `ZERO_WIDTH_SPACE = String.fromCharCode(0x200b)` constant and `\s` (which already covers U+00A0); re-scanned to 0.
+- **Lesson:** never type invisible characters into source; use named constants and scan new files for them.
+
+### 8. Test harness sent a malformed secret header (Phase 2 gate run)
+- **Mistake:** the script that called the local probe read the secret with `grep DEBUG_PROBE_SECRET .env`, which also matched a comment line, so the header contained a newline.
+- **Evidence:** all 9 first-run probes returned empty bodies; a verbose retry showed `HTTP 400` in 0.02 s and a 116-character "secret" instead of 32.
+- **Fix:** match only `^DEBUG_PROBE_SECRET=` and take everything after the first `=`; the rerun passed 9/9.
+- **Lesson:** check a harness's inputs before trusting its results; an instant 400 means the request never reached the code under test.

@@ -77,8 +77,10 @@ Observed:
   check — ₹93,377 vs ₹90,313, ₹2,32,981 vs ₹2,11,444, ₹1,97,090 vs ₹1,71,438.
 - Prices move over hours: product 2331 / o1 was ₹96,021 at 07:10 and ₹90,313 at 13:27.
 
-Not verified: formats present in the bundle but not seen — spaced `₹90 313`, euro `₹90.313,00`,
-characters separated by NBSP + zero-width space, and `priceCarrier: "split"` (one span per character).
+Observed later (Phase 2, 22 probe runs): spaced `₹1 432`, euro `₹36.312,00`, and every character
+separated by NBSP + zero-width space (shown as ␣: `₹␣1␣,␣4␣3␣2`).
+
+Not verified: `priceCarrier: "split"` (one span per character) — present in the bundle, never seen.
 
 Recon cross-check: during capture, the store's decoded quote was also read from React internals. It matched the
 manifest-selected price element and stock pill in 24 of 24 checks, so the DOM plus the network responses are enough.
