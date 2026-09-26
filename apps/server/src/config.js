@@ -42,4 +42,12 @@ export const config = {
   staleRunMinutes: int('STALE_RUN_MINUTES', 15),
   // Pause between products in one run, to stay polite to the store.
   productGapMs: int('RUNNER_PRODUCT_GAP_MS', 4_000),
+
+  // API
+  // Browser origins allowed to call the API (the Vercel frontend, local Vite).
+  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map(origin => origin.trim()).filter(Boolean),
+  // Shared secret for the cron and admin endpoints (Authorization: Bearer ...). Those endpoints are off without it.
+  cronSecret: process.env.CRON_SECRET || undefined,
+  manualScrapeCooldownMinutes: int('MANUAL_SCRAPE_COOLDOWN_MINUTES', 10),
+  maxTracked: int('MAX_TRACKED', 12),
 };
