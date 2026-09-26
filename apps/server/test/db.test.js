@@ -51,7 +51,7 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
 
   describe('migrations', () => {
     it('apply once, in order, and create every table', async () => {
-      expect(await db.migrate()).toEqual(['001_init.sql']);
+      expect(await db.migrate()).toEqual(['001_init.sql', '002_catalog_synced_at_nullable.sql']);
       expect(await db.migrate()).toEqual([]);
       const { rows } = await sql.query("select tablename from pg_tables where schemaname = 'public' order by tablename");
       expect(rows.map(r => r.tablename)).toEqual(['alerts', 'layout_versions', 'products', 'schema_migrations', 'scrape_attempts', 'scrape_runs', 'tracked_products']);
@@ -125,7 +125,7 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
       it('changing the interval re-aligns the next scrape', async () => {
         const tracked = await db.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' });
         const next = new Date('2026-09-27T00:00:00Z');
-        await db.setScrapeInterval(tracked.id, 1440, next);
+        await db.updateTracked(tracked.id, { intervalMinutes: 1440, nextScrapeAt: next });
         const [row] = await db.getTrackedByIds([tracked.id]);
         expect(row).toMatchObject({ scrape_interval_minutes: 1440, next_scrape_at: next });
       });
