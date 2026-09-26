@@ -8,6 +8,7 @@ RUN npm install -g pnpm@11.25.0
 COPY package.json pnpm-lock.yaml ./
 RUN CI=true pnpm install --frozen-lockfile --prod
 
+COPY certs ./certs
 COPY db ./db
 COPY src ./src
 
