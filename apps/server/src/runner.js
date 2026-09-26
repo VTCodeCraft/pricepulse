@@ -12,7 +12,15 @@ import { getItem, getManifest } from './store.js';
 
 // trigger: 'cron' | 'manual' | 'initial' | 'cli'. By default only due options are scraped;
 // trackedIds picks specific rows and force picks every active row.
-export async function runTick({ trigger, trackedIds, force = false, faultPlan, log = () => {} }) {
+export async function runTick(options) {
+  const started = await startTick(options);
+  return started.status === 'busy' ? started : started.finished;
+}
+
+// Takes the DB lock and returns as soon as the run has started (or was refused), so an HTTP request can answer
+// right away. `finished` settles when the run is done and never rejects.
+export async function startTick(options) {
+  const { trigger, faultPlan, log = () => {} } = options;
   const reaped = await db.reapStaleRuns(config.staleRunMinutes);
   if (reaped.length) log(`closed stale run(s) ${reaped.join(', ')} as abandoned`);
 
@@ -21,7 +29,10 @@ export async function runTick({ trigger, trackedIds, force = false, faultPlan, l
     log('another run is in progress; nothing started');
     return { status: 'busy' };
   }
+  return { status: 'started', runId: run.id, finished: executeRun(run, options) };
+}
 
+async function executeRun(run, { trigger, trackedIds, force = false, faultPlan, log = () => {} }) {
   const tickAt = new Date();
   const counts = { success: 0, retried: 0, failed: 0 };
   let browser;
@@ -95,7 +106,7 @@ export async function runTick({ trigger, trackedIds, force = false, faultPlan, l
 }
 
 // Starts tracking an option after checking it against the store. Re-tracking re-activates the same row.
-export async function trackOption(productId, optionId, { intervalMinutes = DEFAULT_INTERVAL } = {}) {
+export async function trackOption(productId, optionId, { intervalMinutes = DEFAULT_INTERVAL, thresholdPct } = {}) {
   if (!SCRAPE_INTERVALS.includes(intervalMinutes)) {
     throw new Error(`interval must be one of ${SCRAPE_INTERVALS.join(', ')} minutes, got ${intervalMinutes}`);
   }
@@ -103,7 +114,7 @@ export async function trackOption(productId, optionId, { intervalMinutes = DEFAU
   const option = item.options.find(o => o.id === optionId);
   if (!option) throw new ScrapeError('option_not_found', `product ${productId} has no option ${optionId}`);
   await db.upsertProduct(item);
-  return db.addTrackedProduct({ storeProductId: productId, optionId, optionLabel: option.label, intervalMinutes });
+  return db.addTrackedProduct({ storeProductId: productId, optionId, optionLabel: option.label, intervalMinutes, thresholdPct });
 }
 
 function groupByProduct(tracked) {
