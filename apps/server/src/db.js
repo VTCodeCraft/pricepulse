@@ -55,11 +55,48 @@ export async function migrate(dir = MIGRATIONS_DIR) {
 
 // ---- products ---------------------------------------------------------------
 
+// Listing rows from the catalogue sync. Leaves the detail columns (options, specs, reviews) untouched.
+export async function upsertCatalogProducts(products) {
+  await query(
+    `insert into products (store_product_id, name, slug, brand, category, sku, description, catalog_synced_at)
+     select id, name, slug, brand, category, sku, description, now()
+     from jsonb_to_recordset($1::jsonb) as x(id int, name text, slug text, brand text, category text, sku text, description text)
+     on conflict (store_product_id) do update set
+       name = excluded.name, slug = excluded.slug, brand = excluded.brand, category = excluded.category,
+       sku = excluded.sku, description = excluded.description, catalog_synced_at = now()`,
+    [JSON.stringify(products)],
+  );
+}
+
+// Only products seen by a catalogue sync count; products added through a detail lookup have no sync time.
+export async function catalogStatus() {
+  const { rows } = await query(
+    'select count(catalog_synced_at)::int as count, max(catalog_synced_at) as synced_at from products',
+  );
+  return rows[0];
+}
+
+// Case-insensitive search on product names: every word must appear; names starting with the query come first.
+export async function searchProducts(text, limit) {
+  const words = text.trim().split(/\s+/).map(word => `%${word.replace(/[\\%_]/g, '\\$&')}%`);
+  const conditions = words.map((_, i) => `name ilike $${i + 3}`).join(' and ');
+  const { rows } = await query(
+    `select store_product_id, name, brand, category, sku from products
+     where ${conditions}
+     order by (lower(name) like lower($1) || '%') desc, name
+     limit $2`,
+    [text.trim().replace(/[\\%_]/g, '\\$&'), limit, ...words],
+  );
+  return rows;
+}
+
+export function reviewSummary(reviews = []) {
+  const ratings = reviews.map(review => review.rating).filter(Number.isFinite);
+  if (!ratings.length) return null;
+  return { count: ratings.length, avgRating: Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 };
+}
+
 export async function upsertProduct(item) {
-  const ratings = (item.reviews ?? []).map(review => review.rating).filter(Number.isFinite);
-  const reviewSummary = ratings.length
-    ? { count: ratings.length, avgRating: Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 }
-    : null;
   await query(
     `insert into products (store_product_id, name, slug, brand, category, sku, description, option_axis, options, specs,
                            review_summary, details_fetched_at)
@@ -70,7 +107,7 @@ export async function upsertProduct(item) {
        options = excluded.options, specs = excluded.specs, review_summary = excluded.review_summary,
        details_fetched_at = now()`,
     [item.id, item.name, item.slug, item.brand, item.category, item.sku, item.description, item.optionAxis,
-      json(item.options), json(item.specs), json(reviewSummary)],
+      json(item.options), json(item.specs), json(reviewSummary(item.reviews))],
   );
 }
 
@@ -81,15 +118,20 @@ const TRACKED_WITH_PRODUCT = `
   from tracked_products t join products p using (store_product_id)`;
 
 // Tracking an option that was tracked before re-activates the same row, so its history continues.
-export async function addTrackedProduct({ storeProductId, optionId, optionLabel, intervalMinutes = DEFAULT_INTERVAL }) {
+// `created` is false for a re-activation (xmax = 0 only for a freshly inserted row).
+export async function addTrackedProduct({ storeProductId, optionId, optionLabel, intervalMinutes = DEFAULT_INTERVAL, thresholdPct }) {
   const { rows } = await query(
-    `insert into tracked_products (store_product_id, option_id, option_label, scrape_interval_minutes)
-     values ($1, $2, $3, $4)
+    `insert into tracked_products (store_product_id, option_id, option_label, scrape_interval_minutes, price_drop_threshold_pct)
+     values ($1, $2, $3, $4, coalesce($5::numeric, 5))
      on conflict (store_product_id, option_id) do update set is_active = true, option_label = excluded.option_label, updated_at = now()
-     returning *`,
-    [storeProductId, optionId, optionLabel, intervalMinutes],
+     returning *, (xmax = 0) as created`,
+    [storeProductId, optionId, optionLabel, intervalMinutes, thresholdPct ?? null],
   );
   return rows[0];
+}
+
+export async function countActiveTracked() {
+  return (await query('select count(*)::int as n from tracked_products where is_active')).rows[0].n;
 }
 
 export async function listActiveTracked() {
@@ -104,11 +146,63 @@ export async function setNextScrapeAt(trackedId, at) {
   await query('update tracked_products set next_scrape_at = $2, updated_at = now() where id = $1', [trackedId, at]);
 }
 
-export async function setScrapeInterval(trackedId, intervalMinutes, nextScrapeAt) {
-  await query(
-    'update tracked_products set scrape_interval_minutes = $2, next_scrape_at = $3, updated_at = now() where id = $1',
-    [trackedId, intervalMinutes, nextScrapeAt],
+// Only the fields passed (not undefined) change. Returns the updated row, or undefined when the id does not exist.
+export async function updateTracked(trackedId, { intervalMinutes, thresholdPct, isActive, nextScrapeAt }) {
+  const { rows } = await query(
+    `update tracked_products set
+       scrape_interval_minutes = coalesce($2, scrape_interval_minutes),
+       price_drop_threshold_pct = coalesce($3, price_drop_threshold_pct),
+       is_active = coalesce($4, is_active),
+       next_scrape_at = coalesce($5, next_scrape_at),
+       updated_at = now()
+     where id = $1
+     returning *`,
+    [trackedId, intervalMinutes ?? null, thresholdPct ?? null, isActive ?? null, nextScrapeAt ?? null],
   );
+  return rows[0];
+}
+
+// Atomically records a manual scrape unless one happened within the cooldown. Returns false when refused.
+export async function claimManualScrape(trackedId, cooldownMinutes) {
+  const { rowCount } = await query(
+    `update tracked_products set last_manual_scrape_at = now()
+     where id = $1 and is_active
+       and (last_manual_scrape_at is null or last_manual_scrape_at < now() - make_interval(mins => $2))`,
+    [trackedId, cooldownMinutes],
+  );
+  return rowCount === 1;
+}
+
+// Everything the dashboard shows per tracked option: product details, latest and previous validated observation,
+// and the most recent attempt of any outcome.
+const TRACKED_OVERVIEW = `
+  select t.*, p.name as product_name, p.brand, p.category, p.sku, p.description, p.option_axis, p.options, p.specs,
+         p.review_summary,
+         latest.price as latest_price, latest.currency as latest_currency, latest.stock as latest_stock,
+         latest.finished_at as latest_at, latest.extras as latest_extras,
+         previous.price as previous_price, previous.stock as previous_stock, previous.finished_at as previous_at,
+         last.outcome as last_attempt_outcome, last.finished_at as last_attempt_at, last.error_code as last_attempt_error
+  from tracked_products t
+  join products p using (store_product_id)
+  left join lateral (
+    select price, currency, stock, finished_at, extras from scrape_attempts
+    where tracked_product_id = t.id and outcome in ('success', 'retried') order by finished_at desc limit 1
+  ) latest on true
+  left join lateral (
+    select price, stock, finished_at from scrape_attempts
+    where tracked_product_id = t.id and outcome in ('success', 'retried') order by finished_at desc offset 1 limit 1
+  ) previous on true
+  left join lateral (
+    select outcome, finished_at, error_code from scrape_attempts
+    where tracked_product_id = t.id and finished_at is not null order by finished_at desc limit 1
+  ) last on true`;
+
+export async function listTrackedOverview({ includeInactive = false } = {}) {
+  return (await query(`${TRACKED_OVERVIEW} where $1 or t.is_active order by t.created_at, t.id`, [includeInactive])).rows;
+}
+
+export async function getTrackedOverview(trackedId) {
+  return (await query(`${TRACKED_OVERVIEW} where t.id = $1`, [trackedId])).rows[0];
 }
 
 // ---- runs -------------------------------------------------------------------
@@ -187,12 +281,72 @@ export async function finishAttempt(attemptId, attempt) {
   );
 }
 
+// The scrape log: every attempt (failed ones included), newest first, with the trigger of its run.
 export async function listAttempts(trackedProductId, limit = 50) {
   const { rows } = await query(
-    'select * from scrape_attempts where tracked_product_id = $1 order by started_at desc, id desc limit $2',
+    `select a.*, r.trigger from scrape_attempts a join scrape_runs r on r.id = a.run_id
+     where a.tracked_product_id = $1 order by a.started_at desc, a.id desc limit $2`,
     [trackedProductId, limit],
   );
   return rows;
+}
+
+// Price/stock history: the most recent `limit` validated observations, oldest first.
+export async function listObservations(trackedProductId, limit) {
+  const { rows } = await query(
+    `select * from (
+       select id, finished_at, price, currency, stock, outcome from scrape_attempts
+       where tracked_product_id = $1 and outcome in ('success', 'retried')
+       order by finished_at desc limit $2
+     ) recent order by finished_at`,
+    [trackedProductId, limit],
+  );
+  return rows;
+}
+
+// One row per finished attempt for the CSV export, oldest first. Failed attempts have null price and stock.
+export async function listAttemptsForExport() {
+  const { rows } = await query(
+    `select t.store_product_id, p.name as product_name, t.option_label as selected_option, a.finished_at,
+            a.price, a.stock, a.outcome
+     from scrape_attempts a
+     join tracked_products t on t.id = a.tracked_product_id
+     join products p using (store_product_id)
+     where a.finished_at is not null
+     order by a.finished_at, a.id`,
+  );
+  return rows;
+}
+
+// ---- run history -------------------------------------------------------------
+
+export async function listRuns(limit) {
+  return (await query('select * from scrape_runs order by started_at desc, id desc limit $1', [limit])).rows;
+}
+
+export async function getRun(runId) {
+  return (await query('select * from scrape_runs where id = $1', [runId])).rows[0];
+}
+
+export async function getRunningRun() {
+  return (await query("select * from scrape_runs where status = 'running'")).rows[0];
+}
+
+export async function listRunAttempts(runId) {
+  const { rows } = await query(
+    `select a.id, a.tracked_product_id, a.outcome, a.price, a.currency, a.stock, a.tries, a.error_code, a.error_message,
+            a.started_at, a.finished_at, t.store_product_id, t.option_label, p.name as product_name
+     from scrape_attempts a
+     join tracked_products t on t.id = a.tracked_product_id
+     join products p using (store_product_id)
+     where a.run_id = $1 order by a.id`,
+    [runId],
+  );
+  return rows;
+}
+
+export async function appliedMigrations() {
+  return (await query('select filename from schema_migrations order by filename')).rows.map(row => row.filename);
 }
 
 // ---- layout versions --------------------------------------------------------
@@ -208,6 +362,10 @@ export async function recordLayoutVersion({ manifestHash, schemaHash, revision, 
   return rows[0].id;
 }
 
+export async function listLayoutVersions(limit) {
+  return (await query('select * from layout_versions order by last_seen_at desc, id desc limit $1', [limit])).rows;
+}
+
 // ---- alerts -----------------------------------------------------------------
 
 // Returns null when the same event (type + dedupe key) was already alerted.
@@ -220,4 +378,25 @@ export async function insertAlert({ type, severity, trackedProductId = null, att
     [type, severity, trackedProductId, attemptId, dedupeKey, title, message, json(data)],
   );
   return rows[0] ?? null;
+}
+
+// types: optional list of alert types to keep (null = all).
+export async function listAlerts({ unreadOnly, limit, types = null }) {
+  const { rows } = await query(
+    `select * from alerts
+     where (not $1 or read_at is null) and ($3::text[] is null or type = any($3))
+     order by created_at desc, id desc limit $2`,
+    [unreadOnly, limit, types],
+  );
+  return rows;
+}
+
+// Returns the alert, or undefined when it does not exist. Marking an already-read alert keeps its first read time.
+export async function markAlertRead(alertId) {
+  const { rows } = await query('update alerts set read_at = coalesce(read_at, now()) where id = $1 returning *', [alertId]);
+  return rows[0];
+}
+
+export async function markAllAlertsRead() {
+  return (await query('update alerts set read_at = now() where read_at is null')).rowCount;
 }
