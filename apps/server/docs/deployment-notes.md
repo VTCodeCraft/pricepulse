@@ -35,6 +35,21 @@ checked for product/option; manifest-named price and stock read with `textConten
 All runs: handshakes 200, zero 401/403, final quote matched the requested product and option, no pending value
 returned (pending seen 5 times and re-checked), real quote 500s recovered by the page (3 times).
 
+## Supabase (verified 2026-09-26, Phase 5)
+
+- Project region ap-southeast-2 (Sydney); Render runs in Singapore, so every query crosses that link.
+- Connection: the **Session pooler** URI (IPv4, port 5432). The direct host is IPv6-only and unreachable from Render.
+- The pooler certificate chain ends in **Supabase Root 2021 CA** (self-signed, valid to 2031-04-26,
+  SHA-256 `80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA`).
+  Node does not trust it by default: plain `sslmode=require` fails with `SELF_SIGNED_CERT_IN_CHAIN`.
+- The pooler URI on its own connected **without TLS** until "Enforce SSL on incoming connections" was switched on;
+  plain-text connections are now refused (`ESSLREQUIRED`).
+- Production `DATABASE_URL` = pooler URI + `?sslmode=verify-full&sslrootcert=certs/supabase-prod-ca-2021.crt`.
+  `certs/supabase-prod-ca-2021.crt` is the CA downloaded from the Supabase dashboard; its fingerprint matches the
+  root the server actually presents. With it the connection is encrypted and the certificate and host name are
+  verified.
+- Migrations `001_init.sql` and `002_catalog_synced_at_nullable.sql` are applied; the server re-checks on every start.
+
 ## Rules that follow from these measurements
 
 - **Memory is constrained (512 MB):** one browser at a time, scrapes run sequentially, every context closed in

@@ -78,3 +78,15 @@ I review every AI-generated change before committing it.
 - **Evidence:** found while reviewing the runner's error path against the reaper query (`where status = 'running'`) before the first live run.
 - **Fix:** a shared `failUnfinishedAttempts(runIds)` in `db.js`, used by both the reaper and the runner's failure path; unfinished attempts become `failed` / `interrupted` with no price.
 - **Lesson:** every exit path of a run must leave each attempt with a final, honest outcome.
+
+### 12. Search could never load the catalogue (Phase 5)
+- **Mistake:** the Phase 4 schema gave `products.catalog_synced_at` a default of `now()`, and the Phase 5 search treated "no products" as "catalogue not loaded". Tracking a product inserts it into `products`, so the catalogue looked loaded and the automatic sync never started.
+- **Evidence:** a live smoke test returned `catalog.count: 3` and no results for "drum"; the 3 rows were the tracked products.
+- **Fix:** migration `002_catalog_synced_at_nullable.sql` makes the column NULL unless a full catalogue sync saw the product; `catalogStatus` counts only synced rows.
+- **Lesson:** a column that records an event should stay empty until that event happens; defaults can make "never happened" look like "happened now".
+
+### 13. SQL parameter typed as integer by a literal (Phase 5)
+- **Mistake:** `coalesce($5, 5)` in the insert for tracked options let PostgreSQL infer `$5` as an integer from the literal `5`.
+- **Evidence:** a live `POST /api/tracked` with `priceDropThresholdPct: 7.5` returned 500; the log showed `invalid input syntax for type integer: "7.5"`.
+- **Fix:** `coalesce($5::numeric, 5)`; the API test now tracks with a fractional threshold.
+- **Lesson:** cast parameters explicitly when a literal sits next to them; test with realistic values, not only round numbers.
