@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Each project keeps its own pnpm-lock.yaml so apps/server (Render, Docker context = apps/server)
+# and apps/frontend (Vercel, root = apps/frontend) install reproducibly without the monorepo root.
+sharedWorkspaceLockfile: false

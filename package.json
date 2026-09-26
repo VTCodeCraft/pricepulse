@@ -1,0 +1,19 @@
+{
+  "name": "pricepulse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Product price tracker for INE's hosted mock store (INE Software Engineer Intern assignment).",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.4"
+  }
+}

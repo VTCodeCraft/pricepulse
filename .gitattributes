@@ -1,0 +1,5 @@
+# Normalize line endings so files behave the same on Windows, Linux CI, and the Render Docker build.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary

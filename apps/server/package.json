@@ -1,0 +1,21 @@
+{
+  "name": "@pricepulse/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PricePulse server: Express API, scrape runner, and Playwright scraper for the INE mock store.",
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "vitest": "^5.0.2"
+  }
+}
