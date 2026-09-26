@@ -9,6 +9,8 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"
   },
@@ -17,5 +19,9 @@
     "eslint": "^10.11.0",
     "globals": "^17.12.0",
     "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "playwright": "1.63.0"
   }
 }
