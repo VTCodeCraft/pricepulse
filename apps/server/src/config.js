@@ -34,4 +34,12 @@ export const config = {
   navTimeoutMs: int('SCRAPER_NAV_TIMEOUT_MS', 30_000),
   quoteTimeoutMs: int('SCRAPER_QUOTE_TIMEOUT_MS', 60_000),
   pendingRechecks: int('SCRAPER_PENDING_RECHECKS', 3),
+
+  databaseUrl: process.env.DATABASE_URL,
+  // A cron call a few minutes early still serves the slot.
+  schedulerToleranceMinutes: int('SCHEDULER_TOLERANCE_MINUTES', 5),
+  // A 'running' run whose heartbeat is older than this is treated as dead (the process restarted mid-run).
+  staleRunMinutes: int('STALE_RUN_MINUTES', 15),
+  // Pause between products in one run, to stay polite to the store.
+  productGapMs: int('RUNNER_PRODUCT_GAP_MS', 4_000),
 };
