@@ -128,6 +128,7 @@ Observed:
 | nginx 503 HTML page (not JSON) | 07:05 | continuing that burst |
 | 20 requests at 1 req/s | 07:08 | all 200 |
 | ~200 requests at ≤ 1 req/s | 13:26–13:45 | no 429 |
+| Handshake 429 ("upstream 429" in the page) | 16:48 (Phase 4) | during a run where every quote was failed on purpose: each failed quote makes the page run a new handshake, ~50 handshakes in ~3 min |
 
 - No rate-limit headers on 200 responses. Slowest single response seen: 484 ms.
 

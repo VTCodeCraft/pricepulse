@@ -72,3 +72,9 @@ I review every AI-generated change before committing it.
 - **Evidence:** the first headed run on Windows printed three pages of launch arguments for `spawn UNKNOWN`.
 - **Fix:** `launchBrowser` throws `browser_launch_failed` with the first line only; all Playwright errors are cut to their first line.
 - **Lesson:** error messages are part of the product: one line, a clear code.
+
+### 11. A failed run could leave an attempt "in progress" forever (Phase 4)
+- **Mistake:** the first runner draft marked a run `failed` when the database or browser failed mid-run, but left that run's unfinished attempt with no outcome. The stale-run reaper only looks at runs still marked `running`, so that attempt would never have been closed.
+- **Evidence:** found while reviewing the runner's error path against the reaper query (`where status = 'running'`) before the first live run.
+- **Fix:** a shared `failUnfinishedAttempts(runIds)` in `db.js`, used by both the reaper and the runner's failure path; unfinished attempts become `failed` / `interrupted` with no price.
+- **Lesson:** every exit path of a run must leave each attempt with a final, honest outcome.
