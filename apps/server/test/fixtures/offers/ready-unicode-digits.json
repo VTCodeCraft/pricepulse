@@ -1,0 +1,68 @@
+{
+  "fixture": "ready-unicode-digits",
+  "description": "Price rendered with full-width digits.",
+  "capturedAt": "2026-09-26T13:29:26.346Z",
+  "injectedFault": null,
+  "storeProductId": 2592,
+  "productName": "Brightwell Pull-up Bar Nano",
+  "optionAxis": "Level",
+  "option": {
+    "id": "o1",
+    "label": "Starter"
+  },
+  "state": "ready",
+  "expected": {
+    "storable": true,
+    "price": 54577,
+    "currency": "INR",
+    "stock": 112
+  },
+  "displayed": {
+    "price": "₹５４,５７７",
+    "stock": "Available (112)",
+    "footer": "Loaded in 1 attempt"
+  },
+  "decoys": {
+    "hiddenPriceValue": "₹34,811",
+    "hiddenAmount": "₹42,044",
+    "mrp": "₹58,685",
+    "memberPrice": null,
+    "savingBadge": "15% saving"
+  },
+  "quoteResponses": [
+    {
+      "status": 200,
+      "path": "/api/v2/items/2592/quote?opt=o1",
+      "body": {
+        "itemId": 2592,
+        "option": "o1"
+      }
+    }
+  ],
+  "manifest": {
+    "revision": 633003,
+    "variant": 3,
+    "validUntil": 1790435355006,
+    "classes": {
+      "priceWrap": "crn-w7",
+      "priceValue": "kjr-w7",
+      "mrp": "ucf-w7",
+      "sale": "fqe-w7",
+      "badge": "hul-w7",
+      "rating": "bdn-w7",
+      "seller": "ogp-w7",
+      "delivery": "dwo-w7",
+      "stock": "rtz-w7"
+    },
+    "order": [
+      "rating",
+      "delivery",
+      "seller",
+      "stock"
+    ],
+    "priceTag": "span",
+    "priceCarrier": "text",
+    "ratingAria": false,
+    "sellerTitle": true
+  }
+}

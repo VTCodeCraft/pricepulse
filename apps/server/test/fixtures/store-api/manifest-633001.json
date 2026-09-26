@@ -1,0 +1,26 @@
+{
+  "revision": 633001,
+  "variant": 1,
+  "validUntil": 1790408618627,
+  "classes": {
+    "priceWrap": "qzb-x1",
+    "priceValue": "fgy-x1",
+    "mrp": "rwq-x1",
+    "sale": "myt-x1",
+    "badge": "ewn-x1",
+    "rating": "kof-x1",
+    "seller": "jal-x1",
+    "delivery": "vpm-x1",
+    "stock": "hdq-x1"
+  },
+  "order": [
+    "stock",
+    "seller",
+    "delivery",
+    "rating"
+  ],
+  "priceTag": "data",
+  "priceCarrier": "text",
+  "ratingAria": true,
+  "sellerTitle": true
+}

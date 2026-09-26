@@ -1,0 +1,49 @@
+{
+  "fixture": "state-locked",
+  "description": "\"Price locked\" before hover/dwell; check button disabled.",
+  "capturedAt": "2026-09-26T13:30:59.950Z",
+  "injectedFault": null,
+  "storeProductId": 2179,
+  "productName": "Mosella Racing Wheel Edge",
+  "optionAxis": "Edition",
+  "option": {
+    "id": "o1",
+    "label": "Standard"
+  },
+  "state": "locked",
+  "expected": {
+    "storable": false,
+    "reason": "not_loaded"
+  },
+  "displayed": {
+    "message": "Price locked",
+    "detail": "Hover over the price area to load the current price."
+  },
+  "quoteResponses": [],
+  "manifest": {
+    "revision": 633003,
+    "variant": 3,
+    "validUntil": 1790435355006,
+    "classes": {
+      "priceWrap": "crn-w7",
+      "priceValue": "kjr-w7",
+      "mrp": "ucf-w7",
+      "sale": "fqe-w7",
+      "badge": "hul-w7",
+      "rating": "bdn-w7",
+      "seller": "ogp-w7",
+      "delivery": "dwo-w7",
+      "stock": "rtz-w7"
+    },
+    "order": [
+      "rating",
+      "delivery",
+      "seller",
+      "stock"
+    ],
+    "priceTag": "span",
+    "priceCarrier": "text",
+    "ratingAria": false,
+    "sellerTitle": true
+  }
+}

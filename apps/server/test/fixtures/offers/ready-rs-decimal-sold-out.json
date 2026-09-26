@@ -1,0 +1,68 @@
+{
+  "fixture": "ready-rs-decimal-sold-out",
+  "description": "\"Rs.<U+00A0>1,393.00\" format; option sold out.",
+  "capturedAt": "2026-09-26T13:32:20.977Z",
+  "injectedFault": null,
+  "storeProductId": 2852,
+  "productName": "Tundrel Smart Panel Zen",
+  "optionAxis": "Tone",
+  "option": {
+    "id": "o1",
+    "label": "Warm white"
+  },
+  "state": "ready",
+  "expected": {
+    "storable": true,
+    "price": 1393,
+    "currency": "INR",
+    "stock": 0
+  },
+  "displayed": {
+    "price": "Rs. 1,393.00",
+    "stock": "Sold out",
+    "footer": "Loaded in 1 attempt"
+  },
+  "decoys": {
+    "hiddenPriceValue": "₹1,468",
+    "hiddenAmount": "₹1,661",
+    "mrp": "₹1,741",
+    "memberPrice": null,
+    "savingBadge": "26% saving"
+  },
+  "quoteResponses": [
+    {
+      "status": 200,
+      "path": "/api/v2/items/2852/quote?opt=o1",
+      "body": {
+        "itemId": 2852,
+        "option": "o1"
+      }
+    }
+  ],
+  "manifest": {
+    "revision": 633003,
+    "variant": 3,
+    "validUntil": 1790435355006,
+    "classes": {
+      "priceWrap": "crn-w7",
+      "priceValue": "kjr-w7",
+      "mrp": "ucf-w7",
+      "sale": "fqe-w7",
+      "badge": "hul-w7",
+      "rating": "bdn-w7",
+      "seller": "ogp-w7",
+      "delivery": "dwo-w7",
+      "stock": "rtz-w7"
+    },
+    "order": [
+      "rating",
+      "delivery",
+      "seller",
+      "stock"
+    ],
+    "priceTag": "span",
+    "priceCarrier": "text",
+    "ratingAria": false,
+    "sellerTitle": true
+  }
+}

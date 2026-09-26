@@ -1,0 +1,68 @@
+{
+  "fixture": "ready-default-clean",
+  "description": "Default ₹ format, in stock.",
+  "capturedAt": "2026-09-26T13:31:13.549Z",
+  "injectedFault": null,
+  "storeProductId": 2179,
+  "productName": "Mosella Racing Wheel Edge",
+  "optionAxis": "Edition",
+  "option": {
+    "id": "o1",
+    "label": "Standard"
+  },
+  "state": "ready",
+  "expected": {
+    "storable": true,
+    "price": 36312,
+    "currency": "INR",
+    "stock": 134
+  },
+  "displayed": {
+    "price": "₹36,312",
+    "stock": "Ready to ship · 134 available",
+    "footer": "Loaded in 1 attempt"
+  },
+  "decoys": {
+    "hiddenPriceValue": "₹32,092",
+    "hiddenAmount": "₹36,908",
+    "mrp": "₹84,447",
+    "memberPrice": null,
+    "savingBadge": "57% saving"
+  },
+  "quoteResponses": [
+    {
+      "status": 200,
+      "path": "/api/v2/items/2179/quote?opt=o1",
+      "body": {
+        "itemId": 2179,
+        "option": "o1"
+      }
+    }
+  ],
+  "manifest": {
+    "revision": 633003,
+    "variant": 3,
+    "validUntil": 1790435355006,
+    "classes": {
+      "priceWrap": "crn-w7",
+      "priceValue": "kjr-w7",
+      "mrp": "ucf-w7",
+      "sale": "fqe-w7",
+      "badge": "hul-w7",
+      "rating": "bdn-w7",
+      "seller": "ogp-w7",
+      "delivery": "dwo-w7",
+      "stock": "rtz-w7"
+    },
+    "order": [
+      "rating",
+      "delivery",
+      "seller",
+      "stock"
+    ],
+    "priceTag": "span",
+    "priceCarrier": "text",
+    "ratingAria": false,
+    "sellerTitle": true
+  }
+}

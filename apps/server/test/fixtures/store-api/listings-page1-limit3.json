@@ -1,0 +1,35 @@
+{
+  "page": 1,
+  "perPage": 3,
+  "totalPages": 320,
+  "count": 960,
+  "results": [
+    {
+      "id": 2941,
+      "slug": "quarrow-massager-arc",
+      "name": "Quarrow Massager Arc",
+      "brand": "Quarrow",
+      "category": "Personal Care",
+      "sku": "SK-2941-QU",
+      "description": "The Quarrow Massager Arc. A dependable personal care pick with a clean, no-nonsense design and the everyday features you actually use."
+    },
+    {
+      "id": 2236,
+      "slug": "tundrel-range-extender-edge",
+      "name": "Tundrel Range Extender Edge",
+      "brand": "Tundrel",
+      "category": "Networking",
+      "sku": "SK-2236-TU",
+      "description": "The Tundrel Range Extender Edge. A dependable networking pick with a clean, no-nonsense design and the everyday features you actually use."
+    },
+    {
+      "id": 2180,
+      "slug": "tundrel-arcade-stick-edge",
+      "name": "Tundrel Arcade Stick Edge",
+      "brand": "Tundrel",
+      "category": "Gaming",
+      "sku": "SK-2180-TU",
+      "description": "The Tundrel Arcade Stick Edge. A dependable gaming pick with a clean, no-nonsense design and the everyday features you actually use."
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "id": 2331,
+  "slug": "halvard-drawing-tablet-prime",
+  "name": "Halvard Drawing Tablet Prime",
+  "brand": "Halvard",
+  "category": "Tablets",
+  "sku": "SK-2331-HA",
+  "description": "The Halvard Drawing Tablet Prime. A dependable tablets pick with a clean, no-nonsense design and the everyday features you actually use.",
+  "specs": {
+    "warranty": "3 years limited warranty",
+    "inTheBox": "Drawing Tablet, Folio sleeve, Stylus, USB-C cable, 20W adapter",
+    "countryOfOrigin": "Portugal",
+    "returns": "Replacement only, on verified defect",
+    "support": "24×7 chat support",
+    "weightGrams": 796,
+    "material": "Magnesium alloy",
+    "colour": "Bone White",
+    "modelYear": 2025
+  },
+  "reviews": [
+    {
+      "id": "2331-r7",
+      "author": "Imran V.",
+      "rating": 4,
+      "title": "Would buy again",
+      "body": "Picked it up on a whim and it has earned its place. Nothing has rattled loose or started creaking yet. Second Halvard product I own and both have lasted. Happy to recommend it.",
+      "date": "2025-02-21",
+      "verifiedPurchase": true,
+      "helpfulVotes": 235
+    },
+    {
+      "id": "2331-r2",
+      "author": "Tanvi N.",
+      "rating": 5,
+      "title": "Exactly what I wanted",
+      "body": "Picked it up on a whim and it has earned its place. Setup took under ten minutes with no surprises. Packaging was tidy and nothing was missing. No regrets.",
+      "date": "2024-09-27",
+      "verifiedPurchase": false,
+      "helpfulVotes": 61
+    },
+    {
+      "id": "2331-r5",
+      "author": "Priya P.",
+      "rating": 1,
+      "title": "Disappointed",
+      "body": "Ordered twice, same problem both times. Support were polite but slow to respond. First Halvard product that has let me down. Cannot recommend it as-is.",
+      "date": "2024-09-12",
+      "verifiedPurchase": true,
+      "helpfulVotes": 38
+    },
+    {
+      "id": "2331-r3",
+      "author": "Meera K.",
+      "rating": 5,
+      "title": "Would buy again",
+      "body": "Bought this after returning two other brands. It does the one job it advertises and does it well. Matches the listing description exactly. Would buy the same one again.",
+      "date": "2024-09-07",
+      "verifiedPurchase": false,
+      "helpfulVotes": 93
+    },
+    {
+      "id": "2331-r1",
+      "author": "Gaurav B.",
+      "rating": 5,
+      "title": "Exactly what I wanted",
+      "body": "Bought this after returning two other brands. Nothing has rattled loose or started creaking yet. Second Halvard product I own and both have lasted. Holding up well so far.",
+      "date": "2024-06-13",
+      "verifiedPurchase": false,
+      "helpfulVotes": 232
+    },
+    {
+      "id": "2331-r4",
+      "author": "Meera C.",
+      "rating": 5,
+      "title": "Solid, boring, reliable",
+      "body": "Replaced a five-year-old unit with this. Nothing has rattled loose or started creaking yet. Second Halvard product I own and both have lasted. Holding up well so far.",
+      "date": "2024-03-16",
+      "verifiedPurchase": true,
+      "helpfulVotes": 179
+    },
+    {
+      "id": "2331-r6",
+      "author": "Imran T.",
+      "rating": 3,
+      "title": "Does the job",
+      "body": "Mixed feelings after a few weeks of use. The finish scuffs more easily than I would like. Halvard have made better, but this is serviceable. Still, I am keeping it.",
+      "date": "2023-12-20",
+      "verifiedPurchase": true,
+      "helpfulVotes": 20
+    }
+  ],
+  "optionAxis": "Storage",
+  "options": [
+    {
+      "id": "o1",
+      "label": "64 GB"
+    },
+    {
+      "id": "o2",
+      "label": "128 GB"
+    },
+    {
+      "id": "o3",
+      "label": "256 GB"
+    }
+  ]
+}

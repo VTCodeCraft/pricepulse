@@ -1,0 +1,5 @@
+{
+  "error": "rate_limited",
+  "scope": "general",
+  "retryAfter": 1
+}

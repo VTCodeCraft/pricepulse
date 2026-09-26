@@ -1,0 +1,92 @@
+{
+  "fixture": "state-failed-injected",
+  "description": "Page gave up after 6 injected quote 503s.",
+  "capturedAt": "2026-09-26T13:34:59.519Z",
+  "injectedFault": "quote → HTTP 503, injected in the probe browser only (page.route)",
+  "storeProductId": 2331,
+  "productName": "Halvard Drawing Tablet Prime",
+  "optionAxis": "Storage",
+  "option": {
+    "id": "o1",
+    "label": "64 GB"
+  },
+  "state": "failed",
+  "expected": {
+    "storable": false,
+    "reason": "store_gave_up"
+  },
+  "displayed": {
+    "message": "Couldn’t load the price after 6 attempts.",
+    "detail": "upstream 503"
+  },
+  "quoteResponses": [
+    {
+      "status": 503,
+      "path": "/api/v2/items/2331/quote?opt=o1",
+      "body": {
+        "error": "upstream_error"
+      }
+    },
+    {
+      "status": 503,
+      "path": "/api/v2/items/2331/quote?opt=o1",
+      "body": {
+        "error": "upstream_error"
+      }
+    },
+    {
+      "status": 503,
+      "path": "/api/v2/items/2331/quote?opt=o1",
+      "body": {
+        "error": "upstream_error"
+      }
+    },
+    {
+      "status": 503,
+      "path": "/api/v2/items/2331/quote?opt=o1",
+      "body": {
+        "error": "upstream_error"
+      }
+    },
+    {
+      "status": 503,
+      "path": "/api/v2/items/2331/quote?opt=o1",
+      "body": {
+        "error": "upstream_error"
+      }
+    },
+    {
+      "status": 503,
+      "path": "/api/v2/items/2331/quote?opt=o1",
+      "body": {
+        "error": "upstream_error"
+      }
+    }
+  ],
+  "manifest": {
+    "revision": 633003,
+    "variant": 3,
+    "validUntil": 1790435355006,
+    "classes": {
+      "priceWrap": "crn-w7",
+      "priceValue": "kjr-w7",
+      "mrp": "ucf-w7",
+      "sale": "fqe-w7",
+      "badge": "hul-w7",
+      "rating": "bdn-w7",
+      "seller": "ogp-w7",
+      "delivery": "dwo-w7",
+      "stock": "rtz-w7"
+    },
+    "order": [
+      "rating",
+      "delivery",
+      "seller",
+      "stock"
+    ],
+    "priceTag": "span",
+    "priceCarrier": "text",
+    "ratingAria": false,
+    "sellerTitle": true
+  }
+}

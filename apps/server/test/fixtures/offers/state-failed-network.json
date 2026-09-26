@@ -1,0 +1,49 @@
+{
+  "fixture": "state-failed-network",
+  "description": "Real \"Failed to fetch\" (no HTTP response); the page gave up after 1 attempt.",
+  "capturedAt": "2026-09-26T13:30:34.016Z",
+  "injectedFault": null,
+  "storeProductId": 2948,
+  "productName": "Redwick Electronic Drum Kit Arc",
+  "optionAxis": "Bundle",
+  "option": {
+    "id": "o2",
+    "label": "Starter bundle"
+  },
+  "state": "failed",
+  "expected": {
+    "storable": false,
+    "reason": "store_gave_up"
+  },
+  "displayed": {
+    "message": "Couldn’t load the price after 1 attempts.",
+    "detail": "Failed to fetch"
+  },
+  "quoteResponses": [],
+  "manifest": {
+    "revision": 633003,
+    "variant": 3,
+    "validUntil": 1790435355006,
+    "classes": {
+      "priceWrap": "crn-w7",
+      "priceValue": "kjr-w7",
+      "mrp": "ucf-w7",
+      "sale": "fqe-w7",
+      "badge": "hul-w7",
+      "rating": "bdn-w7",
+      "seller": "ogp-w7",
+      "delivery": "dwo-w7",
+      "stock": "rtz-w7"
+    },
+    "order": [
+      "rating",
+      "delivery",
+      "seller",
+      "stock"
+    ],
+    "priceTag": "span",
+    "priceCarrier": "text",
+    "ratingAria": false,
+    "sellerTitle": true
+  }
+}

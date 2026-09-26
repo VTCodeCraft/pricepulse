@@ -1,0 +1,68 @@
+{
+  "fixture": "ready-member-price-decoy",
+  "description": "Extra \"Member price\" shown next to the real price.",
+  "capturedAt": "2026-09-26T13:27:40.790Z",
+  "injectedFault": null,
+  "storeProductId": 2331,
+  "productName": "Halvard Drawing Tablet Prime",
+  "optionAxis": "Storage",
+  "option": {
+    "id": "o1",
+    "label": "64 GB"
+  },
+  "state": "ready",
+  "expected": {
+    "storable": true,
+    "price": 90313,
+    "currency": "INR",
+    "stock": 141
+  },
+  "displayed": {
+    "price": "₹90,313",
+    "stock": "Last few: 141",
+    "footer": "Loaded in 1 attempt"
+  },
+  "decoys": {
+    "hiddenPriceValue": "₹1,10,572",
+    "hiddenAmount": "₹59,318",
+    "mrp": "₹2,15,031",
+    "memberPrice": "Member price ₹1,52,672",
+    "savingBadge": "54% saving"
+  },
+  "quoteResponses": [
+    {
+      "status": 200,
+      "path": "/api/v2/items/2331/quote?opt=o1",
+      "body": {
+        "itemId": 2331,
+        "option": "o1"
+      }
+    }
+  ],
+  "manifest": {
+    "revision": 633003,
+    "variant": 3,
+    "validUntil": 1790435355006,
+    "classes": {
+      "priceWrap": "crn-w7",
+      "priceValue": "kjr-w7",
+      "mrp": "ucf-w7",
+      "sale": "fqe-w7",
+      "badge": "hul-w7",
+      "rating": "bdn-w7",
+      "seller": "ogp-w7",
+      "delivery": "dwo-w7",
+      "stock": "rtz-w7"
+    },
+    "order": [
+      "rating",
+      "delivery",
+      "seller",
+      "stock"
+    ],
+    "priceTag": "span",
+    "priceCarrier": "text",
+    "ratingAria": false,
+    "sellerTitle": true
+  }
+}
