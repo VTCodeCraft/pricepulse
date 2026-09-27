@@ -36,7 +36,7 @@ passed to steps through `env` and never echoed; GitHub masks them in logs.
 | `VERCEL_TOKEN` | Vercel → Account Settings → Tokens |
 | `VERCEL_ORG_ID` (`team_…`), `VERCEL_PROJECT_ID` (`prj_…`) | `.vercel/project.json` after `vercel link` in `apps/frontend` (not committed) |
 
-The frontend job checks these before deploying (ID prefixes, whitespace, token and project access) and fails with
+The frontend job checks these before deploying (ID prefixes, whitespace, access to the project) and fails with
 the reason, printing only ID prefixes and HTTP status codes.
 
 ## One deployment path per target
