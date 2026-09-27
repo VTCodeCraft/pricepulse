@@ -1,16 +1,8 @@
-import ArrowDownward from '@mui/icons-material/ArrowDownward';
-import ArrowUpward from '@mui/icons-material/ArrowUpward';
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined';
 import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
@@ -19,10 +11,13 @@ import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid
 import { useMemo, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { StatusBadge } from '../../../components/common/StatusBadge';
-import { formatDateTime, formatPrice, formatRelativeTime, formatSignedPercent } from '../../../lib/utils/format';
+import { formatDateTime, formatPrice, formatRelativeTime } from '../../../lib/utils/format';
 import { priceChangePct, stockStatus } from '../../../lib/utils/observations';
 import type { TrackedProduct } from '../../../types/product';
 import { useRefreshPrice, useUntrack } from '../hooks/useTrackedProducts';
+import { productPath } from '../productInfo';
+import { PriceChange } from './PriceChange';
+import { StopTrackingDialog } from './StopTrackingDialog';
 
 export function TrackedProductsTable({ items }: { items: TrackedProduct[] }) {
   const navigate = useNavigate();
@@ -44,7 +39,7 @@ export function TrackedProductsTable({ items }: { items: TrackedProduct[] }) {
         minWidth: 180,
         renderCell: ({ row }) => (
           <Box sx={{ minWidth: 0 }}>
-            <Link component={RouterLink} to={`/products/${row.id}`} underline="hover" color="text.primary" noWrap sx={{ display: 'block', fontWeight: 600 }}>
+            <Link component={RouterLink} to={productPath(row.storeProductId, row.optionId)} underline="hover" color="text.primary" noWrap sx={{ display: 'block', fontWeight: 600 }}>
               {row.productName}
             </Link>
             <Typography variant="caption" noWrap component="p" sx={{ color: 'text.secondary' }}>
@@ -130,7 +125,7 @@ export function TrackedProductsTable({ items }: { items: TrackedProduct[] }) {
         headerName: 'Actions',
         width: 112,
         getActions: ({ row }) => [
-          <GridActionsCellItem key="view" icon={<VisibilityOutlined fontSize="small" />} label="View details" title="View details" onClick={() => navigate(`/products/${row.id}`)} />,
+          <GridActionsCellItem key="view" icon={<VisibilityOutlined fontSize="small" />} label="View details" title="View details" onClick={() => navigate(productPath(row.storeProductId, row.optionId))} />,
           <GridActionsCellItem
             key="refresh"
             icon={refreshingId === row.id ? <CircularProgress size={16} /> : <RefreshOutlined fontSize="small" />}
@@ -175,44 +170,8 @@ export function TrackedProductsTable({ items }: { items: TrackedProduct[] }) {
           '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center', lineHeight: 1.43 },
         }}
       />
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} aria-labelledby="stop-tracking-title">
-        <DialogTitle id="stop-tracking-title">Stop tracking this option?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {pendingRemoval && `${pendingRemoval.productName} · ${pendingRemoval.optionLabel}`} will no longer be scraped. Its price
-            history is kept, and tracking it again later continues it.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={() => {
-              if (pendingRemoval) untrack.mutate(pendingRemoval);
-              setConfirmOpen(false);
-            }}
-          >
-            Stop tracking
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <StopTrackingDialog item={pendingRemoval} open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={untrack.mutate} />
     </>
   );
 }
 
-// A drop is good news for a buyer: green with a down arrow. The arrow and sign carry the meaning, not the colour.
-function PriceChange({ pct }: { pct: number | null }) {
-  if (pct === null) return <>—</>;
-  const Icon = pct < 0 ? ArrowDownward : ArrowUpward;
-  return (
-    <Stack
-      direction="row"
-      spacing={0.25}
-      sx={{ alignItems: 'center', fontVariantNumeric: 'tabular-nums', color: pct < 0 ? 'success.main' : pct > 0 ? 'error.main' : 'text.secondary' }}
-    >
-      {pct !== 0 && <Icon sx={{ fontSize: 14 }} aria-hidden />}
-      <span>{formatSignedPercent(pct)}</span>
-    </Stack>
-  );
-}
