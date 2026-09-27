@@ -51,7 +51,7 @@ Store behaviour and the traps it sets are recorded in `apps/server/docs/store-no
 - **Browser lifecycle.** A run launches Chromium once and relaunches it if it crashes. Each product gets one
   context and each option its own page. Everything is closed in `finally`. Callbacks that Playwright calls from
   event listeners (the consent handler, fault-injection routes) catch their own errors, because an unhandled
-  rejection there would exit Node (AI log 15).
+  rejection there would exit Node (AI log 10).
 - **Several options of one product.** A run groups due options by product: one HTTP preflight and one shared
   browser context (cookies, cache, the consent choice). Every option still gets its own page load, option check,
   quote check, attempt row and retries. A retry uses a fresh context, and the runner refuses to store a result
@@ -77,7 +77,7 @@ Store behaviour and the traps it sets are recorded in `apps/server/docs/store-no
   pushes a scheduled scrape further away. Manual scrapes have a 10-minute cooldown per option.
 - **Free-tier sleep.** Render's free instance sleeps after 15 idle minutes. A second job wakes it at minutes 50
   and 55. Both jobs send `Accept: application/json`, because while the instance is waking Render answers HTML
-  requests with a 258 KB loading page (AI log 13).
+  requests with a 258 KB loading page (AI log 8).
 
 ## 4. Database
 
@@ -152,14 +152,15 @@ the dashboard). No email is sent; `email_status` stays `not_configured`.
 
 ## 8. AI usage
 
-Claude Code wrote most of the code, tests and documentation under my direction; I set the scope, reviewed each
-batch and did all account and dashboard work. `docs/AI_LOG.md` records the concrete mistakes it made and how each
-was found and corrected. They fall into a few patterns:
+AI-assisted tools (Claude, OpenCode, Google Antigravity, Kiro and GitHub Copilot) supported exploration, debugging,
+implementation, testing, documentation and iteration. Every change was reviewed and verified before it was
+committed. `docs/AI_LOG.md` lists the concrete AI mistakes that were caught and how each was corrected. They fall
+into a few patterns:
 
-- **Trusting the wrong source of truth:** React internals instead of the DOM, run counters instead of attempts.
-- **Guessing at causes before reading the evidence:** the cron failures, the first actionlint failure.
-- **Checks that only passed on the development machine:** a stray `@types/node` in a parent folder.
-- **Error paths that were never exercised:** the stale-run lock, the process-killing consent handler.
+- **Wrong source of truth:** React internals instead of the DOM, run counters instead of attempts.
+- **Guessing before reading the evidence:** the cron failures, a CI failure.
+- **Checks that passed only on the development machine:** a stray `@types/node` in a parent folder.
+- **Error paths never exercised:** the stale-run lock, the process-killing consent handler.
 
-Most were caught by tests on captured store fixtures, by cross-checking figures against Supabase, or by production
-logs.
+They were caught by tests on captured store fixtures, by cross-checking figures against the database, and by
+production logs.
