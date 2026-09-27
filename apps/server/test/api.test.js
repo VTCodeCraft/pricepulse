@@ -335,6 +335,21 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
       await waitForRun(responses.find(r => r.status === 202).body.runId);
     });
 
+    it('a run whose process died does not block the cron call or a manual scrape', async () => {
+      const { id } = (await track('o1')).body.tracked;
+      const deadRun = () => sql.query("insert into scrape_runs (trigger, heartbeat_at) values ('cron', now() - interval '20 minutes') returning id");
+      const dead = (await deadRun()).rows[0].id;
+      const cron = await api('POST', '/scrape/run', {}, { authorization: `Bearer ${SECRET}` });
+      expect(cron.status).toBe(202);
+      await waitForRun(cron.body.runId);
+      expect((await api('GET', `/runs/${dead}`)).body.run).toMatchObject({ status: 'abandoned' });
+
+      await deadRun();
+      const manual = await api('POST', `/tracked/${id}/scrape`);
+      expect(manual.status).toBe(202);
+      await waitForRun(manual.body.runId);
+    });
+
     it('lists runs and shows one run with its attempts', async () => {
       const { initialRun } = (await track('o1')).body;
       expect((await api('GET', '/runs')).body.runs[0]).toMatchObject({ id: initialRun.runId, trigger: 'initial' });
