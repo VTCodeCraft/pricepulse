@@ -55,7 +55,7 @@ export function ProductDetailsPage() {
           </Button>
         }
       />
-      {live.isError && (
+      {live.isError && !live.data && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           The store did not answer ({live.error.message}). Showing the details saved when this product was tracked.
         </Alert>
@@ -84,8 +84,8 @@ export function ProductDetailsPage() {
           <Card component="section" aria-label="Selected option" sx={{ p: 2.5 }}>
             {tracked.isPending ? (
               <LoadingSkeleton variant="table" rows={3} label="Loading tracking state" />
-            ) : tracked.isError ? (
-              <ErrorState title="Unable to load the tracking state" message={tracked.error.message} onRetry={() => tracked.refetch()} />
+            ) : !tracked.data ? (
+              <ErrorState title="Unable to load the tracking state" message={tracked.error?.message} onRetry={() => tracked.refetch()} />
             ) : option ? (
               <OptionTrackingPanel storeProductId={storeProductId} productName={info.name} option={option} item={trackedHere.get(option.id)} />
             ) : (
