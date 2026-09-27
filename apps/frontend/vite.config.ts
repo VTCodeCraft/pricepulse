@@ -1,19 +1,14 @@
 import react from '@vitejs/plugin-react';
-import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
+import pkg from './package.json' with { type: 'json' };
 
 // Module ids are normalised to forward slashes on every OS.
 const inPackages = (...names: string[]) => new RegExp(`/node_modules/(${names.join('|')})/`);
 
-const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
-
 export default defineConfig({
   plugins: [react()],
-  // Shown under Settings → System. Vercel sets VERCEL_GIT_COMMIT_SHA during its builds; local builds have none.
-  define: {
-    __APP_VERSION__: JSON.stringify(version),
-    __APP_COMMIT__: JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null),
-  },
+  // Shown under Settings → System. The config uses no Node APIs, so it type-checks without @types/node.
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   build: {
     rolldownOptions: {
       output: {

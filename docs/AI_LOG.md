@@ -166,3 +166,9 @@ without AI trailers; this file is the disclosure.
 - **Evidence:** with the local API stopped, the Scraping card kept three skeletons after the request had failed; after restarting the API, one "Try again" on Analytics left "Unable to load analytics" on screen.
 - **Fix:** the Scraping card shows its own error with a retry; "Try again" refetches every query that has no data. Both re-checked against the stopped and restarted API.
 - **Lesson:** test each loading state against a failure, and a retry against more than one failed request.
+
+### 24. A build config that only type-checked on the AI's machine (Phase 7, F5)
+- **Mistake:** `vite.config.ts` read the app version with `node:fs` and the commit with `process.env`. The frontend's type check found Node's types only because a stray `@types/node` sits in the user's home folder, which TypeScript reaches by walking up parent directories; every local check passed.
+- **Evidence:** GitHub Actions run 36318312388 failed on `cf08aed` with "Cannot find name 'process'" and "Cannot find name 'node:fs'". A clean clone outside the home folder, installed with the frozen lockfile, reproduced both errors.
+- **Fix:** the config imports `package.json` instead of reading it, and the commit comes from `VITE_VERCEL_GIT_COMMIT_SHA`, which Vercel exposes to Vite builds; no Node API or new dependency. The clean clone then passed `pnpm lint`, `pnpm test` and `pnpm build`.
+- **Lesson:** reproduce CI in a clean checkout outside the development machine's folders before calling a push verified.

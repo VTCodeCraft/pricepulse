@@ -48,9 +48,9 @@ export function SystemSection() {
         </Detail>
         <Detail label="Application">
           Version {__APP_VERSION__}
-          {__APP_COMMIT__ && (
+          {import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA && (
             <Box component="span" sx={{ ...monospace, color: 'text.secondary', ml: 1 }}>
-              {__APP_COMMIT__}
+              {import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA.slice(0, 7)}
             </Box>
           )}
         </Detail>
