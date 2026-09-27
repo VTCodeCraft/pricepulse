@@ -12,6 +12,12 @@ export function formatPrice(value: number, currency = 'INR'): string {
   return formatter.format(value);
 }
 
+// Signed amount with the same signs as percentages: +₹4,291, −₹42,103, ₹0.
+export function formatSignedPrice(value: number, currency = 'INR'): string {
+  const sign = value > 0 ? '+' : value < 0 ? '−' : '';
+  return `${sign}${formatPrice(Math.abs(value), currency)}`;
+}
+
 // Signed, one decimal: +2.4%, −12.0%, 0.0%.
 export function formatSignedPercent(value: number): string {
   const sign = value > 0 ? '+' : value < 0 ? '−' : '';

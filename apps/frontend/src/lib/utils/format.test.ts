@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, formatPrice, formatSignedPercent, formatTimestamp } from './format';
+import { formatDuration, formatPrice, formatSignedPercent, formatSignedPrice, formatTimestamp } from './format';
 
 describe('formatPrice', () => {
   it('uses Indian digit grouping and no decimals', () => {
     expect(formatPrice(117570)).toBe('₹1,17,570');
     expect(formatPrice(1389)).toBe('₹1,389');
     expect(formatPrice(33504.4)).toBe('₹33,504');
+  });
+});
+
+describe('formatSignedPrice', () => {
+  it('signs the amount like a percentage change', () => {
+    expect(formatSignedPrice(-42103)).toBe('−₹42,103');
+    expect(formatSignedPrice(4291)).toBe('+₹4,291');
+    expect(formatSignedPrice(0)).toBe('₹0');
   });
 });
 
