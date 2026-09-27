@@ -23,6 +23,15 @@ export async function countActiveTracked() {
   return (await query('select count(*)::int as n from tracked_products where is_active')).rows[0].n;
 }
 
+// How many of these options of a product are already being tracked.
+export async function countActiveOptions(storeProductId, optionIds) {
+  const { rows } = await query(
+    'select count(*)::int as n from tracked_products where is_active and store_product_id = $1 and option_id = any($2)',
+    [storeProductId, optionIds],
+  );
+  return rows[0].n;
+}
+
 export async function listActiveTracked() {
   return (await query(`${TRACKED_WITH_PRODUCT} where t.is_active order by t.store_product_id, t.option_id`)).rows;
 }

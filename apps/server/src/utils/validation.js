@@ -23,6 +23,16 @@ export function queryInt(value, name, { min, max, fallback }) {
   return number;
 }
 
+// One or more distinct option ids, e.g. ["o1", "o3"].
+export function optionIdsValue(value) {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 20) {
+    throw new HttpError(400, 'invalid_request', 'optionIds must be a list of 1 to 20 option ids');
+  }
+  const ids = value.map(id => optionIdValue(id));
+  if (new Set(ids).size !== ids.length) throw new HttpError(400, 'invalid_request', 'optionIds must not repeat an option');
+  return ids;
+}
+
 export function optionIdValue(value) {
   if (typeof value !== 'string' || !/^o\d{1,2}$/.test(value)) throw new HttpError(400, 'invalid_request', 'optionId must look like "o1"');
   return value;

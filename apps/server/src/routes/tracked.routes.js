@@ -2,15 +2,15 @@ import { Router } from 'express';
 import { config } from '../config.js';
 import { listAttempts, listObservations } from '../db/repositories/scrape-attempts.repository.js';
 import {
-  claimManualScrape, countActiveTracked, getTrackedOverview, listTrackedOverview, updateTracked,
+  claimManualScrape, countActiveOptions, countActiveTracked, getTrackedOverview, listTrackedOverview, updateTracked,
 } from '../db/repositories/tracked-products.repository.js';
 import { startTick } from '../scheduler/runner.js';
 import { nextAligned } from '../scheduler/schedule.js';
 import { refuseIfRunning, startScrapeRun } from '../services/scrape.service.js';
-import { trackOption } from '../services/tracking.service.js';
+import { trackOptions } from '../services/tracking.service.js';
 import { HttpError, notFound } from '../utils/http-error.js';
 import { attemptJson, num, trackedJson } from '../utils/serializers.js';
-import { intervalValue, objectBody, optionIdValue, positiveInt, queryInt, thresholdValue } from '../utils/validation.js';
+import { intervalValue, objectBody, optionIdValue, optionIdsValue, positiveInt, queryInt, thresholdValue } from '../utils/validation.js';
 
 export const trackedRoutes = Router();
 const log = message => console.log(message);
@@ -20,25 +20,34 @@ trackedRoutes.get('/tracked', async (req, res) => {
   res.json({ items: rows.map(trackedJson) });
 });
 
+// One option ({ optionId } → { tracked }) or several options of the same product ({ optionIds } → { tracked: [] }).
 trackedRoutes.post('/tracked', async (req, res) => {
-  const body = objectBody(req.body, ['storeProductId', 'optionId', 'scrapeIntervalMinutes', 'priceDropThresholdPct']);
+  const body = objectBody(req.body, ['storeProductId', 'optionId', 'optionIds', 'scrapeIntervalMinutes', 'priceDropThresholdPct']);
   const storeProductId = positiveInt(body.storeProductId, 'storeProductId');
-  const optionId = optionIdValue(body.optionId);
+  if ((body.optionId === undefined) === (body.optionIds === undefined)) {
+    throw new HttpError(400, 'invalid_request', 'Send either optionId or optionIds');
+  }
+  const optionIds = body.optionIds === undefined ? [optionIdValue(body.optionId)] : optionIdsValue(body.optionIds);
   const intervalMinutes = body.scrapeIntervalMinutes === undefined ? undefined : intervalValue(body.scrapeIntervalMinutes);
   const thresholdPct = body.priceDropThresholdPct === undefined ? undefined : thresholdValue(body.priceDropThresholdPct);
-  if ((await countActiveTracked()) >= config.maxTracked) {
+  // The limit counts the whole request; options that are already tracked do not add to it.
+  const adding = optionIds.length - (await countActiveOptions(storeProductId, optionIds));
+  if (adding > 0 && (await countActiveTracked()) + adding > config.maxTracked) {
     throw new HttpError(422, 'tracking_limit_reached', `At most ${config.maxTracked} options can be tracked at once`);
   }
 
-  const tracked = await trackOption(storeProductId, optionId, { intervalMinutes, thresholdPct });
-  // A new option gets its first scrape straight away, through the normal runner and lock.
-  // If another run is busy, the next scheduled tick picks it up (it is due immediately).
+  const rows = await trackOptions(storeProductId, optionIds, { intervalMinutes, thresholdPct });
+  // New options get their first scrape straight away, together in one run, through the normal runner and lock.
+  // If another run is busy, the next scheduled tick picks them up (they are due immediately).
+  const created = rows.filter(row => row.created).map(row => row.id);
   let initialRun = null;
-  if (tracked.created) {
-    const started = await startTick({ trigger: 'initial', trackedIds: [tracked.id], log });
+  if (created.length) {
+    const started = await startTick({ trigger: 'initial', trackedIds: created, log });
     initialRun = started.status === 'started' ? { status: 'started', runId: started.runId } : { status: 'busy' };
   }
-  res.status(tracked.created ? 201 : 200).json({ tracked: trackedJson(await getTrackedOverview(tracked.id)), initialRun });
+  const tracked = [];
+  for (const row of rows) tracked.push(trackedJson(await getTrackedOverview(row.id)));
+  res.status(created.length ? 201 : 200).json({ tracked: body.optionIds === undefined ? tracked[0] : tracked, initialRun });
 });
 
 trackedRoutes.get('/tracked/:id', async (req, res) => {

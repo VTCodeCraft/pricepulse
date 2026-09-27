@@ -62,7 +62,7 @@ Timestamps are ISO 8601 in UTC.
 | POST | `/api/catalog/sync` | Rebuild the catalogue in the background (Bearer `CRON_SECRET`) |
 | GET | `/api/catalog/products/:storeProductId` | Live product details and options from the store |
 | GET | `/api/tracked[?includeInactive=true]` | Tracked options with latest/previous observation and last attempt |
-| POST | `/api/tracked` | `{ storeProductId, optionId, scrapeIntervalMinutes?, priceDropThresholdPct? }` → 201 new (first scrape starts) / 200 re-activated |
+| POST | `/api/tracked` | `{ storeProductId, optionId, scrapeIntervalMinutes?, priceDropThresholdPct? }` → 201 new (first scrape starts) / 200 re-activated. With `optionIds: [...]` instead of `optionId`, several options of the product at once (all checked first, limit counted for the whole set, one first-scrape run for the new ones) → `{ tracked: [...] }` |
 | GET | `/api/tracked/:id` | One tracked option with product details |
 | PATCH | `/api/tracked/:id` | `{ scrapeIntervalMinutes?, priceDropThresholdPct?, isActive? }`; a new interval re-aligns the next scrape |
 | DELETE | `/api/tracked/:id` | Untrack (history is kept) → 204 |

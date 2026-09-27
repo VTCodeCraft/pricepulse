@@ -249,6 +249,10 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
       [{ storeProductId: 2331, optionId: 'o1', scrapeIntervalMinutes: 90 }, 'scrapeIntervalMinutes'],
       [{ storeProductId: 2331, optionId: 'o1', priceDropThresholdPct: 0 }, 'priceDropThresholdPct'],
       [{ storeProductId: 2331, optionId: 'o1', colour: 'red' }, 'colour'],
+      [{ storeProductId: 2331, optionId: 'o1', optionIds: ['o2'] }, 'optionIds'],
+      [{ storeProductId: 2331, optionIds: [] }, 'optionIds'],
+      [{ storeProductId: 2331, optionIds: ['o1', 'o1'] }, 'optionIds'],
+      [{ storeProductId: 2331, optionIds: ['o1', 'x1'] }, 'optionId'],
     ])('rejects %j', async (body, field) => {
       const response = await api('POST', '/tracked', body);
       expect(response.status).toBe(400);
@@ -258,6 +262,40 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
     it('rejects unknown products and options', async () => {
       expect(await api('POST', '/tracked', { storeProductId: 99999, optionId: 'o1' })).toMatchObject({ status: 404, body: { error: { code: 'product_not_found' } } });
       expect(await api('POST', '/tracked', { storeProductId: 2331, optionId: 'o9' })).toMatchObject({ status: 422, body: { error: { code: 'option_not_found' } } });
+    });
+
+    it('tracks several options of a product in one request, with one first-scrape run for all', async () => {
+      const { status, body } = await api('POST', '/tracked', { storeProductId: 2331, optionIds: ['o1', 'o3'] });
+      expect(status).toBe(201);
+      expect(body.tracked.map(t => t.optionLabel)).toEqual(['64 GB', '256 GB']);
+      const run = await waitForRun(body.initialRun.runId);
+      expect(run.run).toMatchObject({ trigger: 'initial', productsDue: 2 });
+      expect(run.attempts.map(a => a.optionLabel)).toEqual(['64 GB', '256 GB']);
+    });
+
+    it('scrapes only the new options of a request; re-tracked ones join without a second first scrape', async () => {
+      await track('o1');
+      const { status, body } = await api('POST', '/tracked', { storeProductId: 2331, optionIds: ['o1', 'o2'] });
+      expect(status).toBe(201);
+      expect((await waitForRun(body.initialRun.runId)).attempts.map(a => a.optionLabel)).toEqual(['128 GB']);
+      expect(await api('POST', '/tracked', { storeProductId: 2331, optionIds: ['o1', 'o2'] })).toMatchObject({ status: 200, body: { initialRun: null } });
+    });
+
+    it('tracks none of the options when one is unknown', async () => {
+      expect(await api('POST', '/tracked', { storeProductId: 2331, optionIds: ['o1', 'o9'] })).toMatchObject({ status: 422, body: { error: { code: 'option_not_found' } } });
+      expect((await api('GET', '/tracked')).body.items).toEqual([]);
+    });
+
+    it('applies the tracking limit to the whole request', async () => {
+      for (const option of ['o1', 'o2']) await track(option);
+      // Already tracked options do not count again: 2 tracked + 1 new = 3, the limit.
+      expect((await api('POST', '/tracked', { storeProductId: 2331, optionIds: ['o1', 'o2', 'o3'] })).status).toBe(201);
+      await api('DELETE', `/tracked/${(await api('GET', '/tracked')).body.items[2].id}`);
+      const extra = { ...item, id: 2335, options: [{ id: 'o1', label: 'x' }, { id: 'o2', label: 'y' }] };
+      store.getItem.mockResolvedValue(extra);
+      // 2 tracked + 2 new = 4: refused as a whole, nothing added.
+      expect(await api('POST', '/tracked', { storeProductId: 2335, optionIds: ['o1', 'o2'] })).toMatchObject({ status: 422, body: { error: { code: 'tracking_limit_reached' } } });
+      expect((await api('GET', '/tracked')).body.items).toHaveLength(2);
     });
 
     it('enforces the tracking limit', async () => {
