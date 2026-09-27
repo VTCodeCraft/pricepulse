@@ -22,6 +22,7 @@ without AI trailers; this file is the disclosure.
 | 6 Schedule | Chose the tracked options, measured Render cold starts, traced the failing cron calls to Render's loading page, checked the cron runs in Supabase, fixed the two bugs the first production runs exposed (entries 15 and 16), wrote the scheduling notes | Created and configured the two cron-job.org jobs (method, headers, schedules) and ran their test runs; chose to track 10 options |
 | Structure cleanup | Split `routes.js` and `db.js` and moved the server modules into `routes/`, `middleware/`, `services/`, `scheduler/`, `scraper/`, `db/` and `utils/` without changing behavior; compared recorded API responses before and after | Asked for the cleanup and set the target layout |
 | 7 Frontend (F1) | Set up the TypeScript + MUI app shell: theme tokens, sidebar, header, routes, shared loading/empty/error states, route code-splitting; checked it in the browser at 1440/1024/768/375 px | Set the stack, structure, design direction and batch order |
+| 7 Frontend (F2) | Built the API layer, response types, React Query hooks, the dashboard KPIs and the tracked-products table with refresh and untrack; checked the numbers against Supabase and the flows against the local API | Reviewed; set the rule that no metric may be invented |
 
 ## Mistakes
 
@@ -126,3 +127,15 @@ without AI trailers; this file is the disclosure.
 - **Evidence:** at 768 px the browser check showed the menu button and no sidebar.
 - **Fix:** three widths now: from 900 px a sidebar the user can collapse; 600–899 px an icon-only sidebar; below 600 px the drawer. Re-checked at 768 and 375 px.
 - **Lesson:** check each breakpoint against the brief, not only that the layout works.
+
+### 18. A dashboard figure taken from counters that can be wrong (Phase 7, F2)
+- **Mistake:** the first KPI version summed each run's success/retried/failed counters. A run cut off by a crash never writes them, so the dashboard showed 39 successful scrapes and 0 failures for the last 24 hours.
+- **Evidence:** cross-checking against Supabase: run 19 (abandoned when its instance crashed) has 2 successful attempts and 1 failed (`interrupted`) that its counters do not include. The true figures were 41 and 1.
+- **Fix:** the KPIs count outcomes from each tracked option's attempt log, the same table the history and CSV use. The backend gap stays open: the stale-run cleanup does not recount an abandoned run's counters.
+- **Lesson:** check a derived number against the source of truth before showing it.
+
+### 19. An animated number that showed 0 (Phase 7, F2)
+- **Mistake:** the KPI count-up started every number at 0 and relied on animation frames to reach the real value.
+- **Evidence:** with the page in a background tab (no animation frames), all four cards read 0 while the API had returned 10 tracked products.
+- **Fix:** the number renders the real value at once and only eases between values when the data changes.
+- **Lesson:** decoration must never change what a data display says, even for a moment.
