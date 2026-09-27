@@ -204,11 +204,17 @@ function recordStoreTraffic(page) {
 }
 
 // The cookie dialog appears 1.5–5 s after load and can need up to 3 clicks; Playwright runs this whenever it blocks an action.
-async function dismissConsentWhenShown(page, evidence) {
+// Playwright calls the handler from an event listener and does not catch what it throws, so an error here (typically the
+// context closing mid-click) would crash the process. The blocked action in scrapeOption then fails and is classified there.
+export async function dismissConsentWhenShown(page, evidence) {
   await page.addLocatorHandler(page.getByRole('dialog', { name: 'Privacy preferences' }), async dialog => {
-    for (let i = 0; i < 5 && (await dialog.isVisible()); i++) {
-      await dialog.getByRole('button', { name: 'Reject cookies' }).click();
-      evidence.consentClicks++;
+    try {
+      for (let i = 0; i < 5 && (await dialog.isVisible()); i++) {
+        await dialog.getByRole('button', { name: 'Reject cookies' }).click();
+        evidence.consentClicks++;
+      }
+    } catch {
+      // deliberately ignored: the scrape's own blocked action reports the failure
     }
   });
 }
@@ -253,7 +259,7 @@ async function waitForTerminalState(page) {
 }
 
 // Playwright errors carry a long call log after the first line; keep only the first line.
-function toScrapeError(error) {
+export function toScrapeError(error) {
   if (error instanceof ScrapeError) return error;
   const message = firstLine(error.message);
   if (error.name === 'TimeoutError') return new ScrapeError('timeout', message);

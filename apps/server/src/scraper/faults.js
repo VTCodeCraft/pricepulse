@@ -22,19 +22,20 @@ export function parseFaultPlan(spec) {
 }
 
 // The plan's counters are shared across retries, so "quote:503x6" can exhaust the page's 6 attempts in try 1
-// and let try 2 succeed.
+// and let try 2 succeed. Like a locator handler, a route handler must not reject: Playwright would leave the error
+// unhandled and the process would exit. The route calls fail only when the page has already closed.
 export async function installFaults(page, plan) {
   assertFaultInjectionAllowed();
   for (const target of new Set(plan.map(fault => fault.target))) {
     await page.route(ROUTES[target], async route => {
       const fault = plan.find(f => f.target === target && f.remaining > 0);
-      if (!fault) return route.continue();
+      if (!fault) return route.continue().catch(() => {});
       fault.remaining--;
       if (fault.delayMs) {
         await sleep(fault.delayMs);
-        return route.continue().catch(() => {}); // the page may have closed while we waited
+        return route.continue().catch(() => {});
       }
-      return route.fulfill({ status: fault.status, contentType: 'application/json', body: '{"error":"injected_fault"}' });
+      return route.fulfill({ status: fault.status, contentType: 'application/json', body: '{"error":"injected_fault"}' }).catch(() => {});
     });
   }
 }

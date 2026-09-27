@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { assertFaultInjectionAllowed, parseFaultPlan } from '../src/scraper/faults.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { assertFaultInjectionAllowed, installFaults, parseFaultPlan } from '../src/scraper/faults.js';
 
 describe('fault injection', () => {
   it('parses a plan', () => {
@@ -18,5 +18,22 @@ describe('fault injection', () => {
     expect(() => assertFaultInjectionAllowed({})).toThrow();
     expect(() => assertFaultInjectionAllowed({ ALLOW_FAULT_INJECTION: 'true', NODE_ENV: 'production' })).toThrow();
     expect(() => assertFaultInjectionAllowed({ ALLOW_FAULT_INJECTION: 'true' })).not.toThrow();
+  });
+
+  // Playwright does not catch errors thrown by a route handler either.
+  describe('route handlers', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('resolve when the page has already closed', async () => {
+      vi.stubEnv('ALLOW_FAULT_INJECTION', 'true');
+      const handlers = [];
+      await installFaults({ route: async (_pattern, fn) => { handlers.push(fn); } }, parseFaultPlan('quote:503x1'));
+      const closed = () => Promise.reject(new Error('route.fulfill: Target page, context or browser has been closed'));
+      const route = { fulfill: vi.fn(closed), continue: vi.fn(closed) };
+      await expect(handlers[0](route)).resolves.toBeUndefined(); // the injected 503
+      await expect(handlers[0](route)).resolves.toBeUndefined(); // plan used up: passes the request on
+      expect(route.fulfill).toHaveBeenCalledOnce();
+      expect(route.continue).toHaveBeenCalledOnce();
+    });
   });
 });
