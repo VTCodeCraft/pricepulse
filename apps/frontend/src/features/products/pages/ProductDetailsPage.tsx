@@ -14,8 +14,10 @@ import { ErrorState } from '../../../components/common/ErrorState';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { ApiError } from '../../../lib/api/client';
+import { OptionScrapeLog } from '../../scraping/components/OptionScrapeLog';
 import { OptionSelector } from '../components/OptionSelector';
 import { OptionTrackingPanel } from '../components/OptionTrackingPanel';
+import { PriceHistorySection } from '../components/PriceHistorySection';
 import { ProductInfoCard } from '../components/ProductInfoCard';
 import { useProduct } from '../hooks/useCatalog';
 import { useTrackedProducts } from '../hooks/useTrackedProducts';
@@ -42,6 +44,7 @@ export function ProductDetailsPage() {
   }
 
   const option = info.options.find(o => o.id === optionId);
+  const trackedOption = option && trackedHere.get(option.id);
   const subtitle = [info.brand, info.category, info.sku, `Store #${storeProductId}`].filter(Boolean).join(' · ');
 
   return (
@@ -87,7 +90,7 @@ export function ProductDetailsPage() {
             ) : !tracked.data ? (
               <ErrorState title="Unable to load the tracking state" message={tracked.error?.message} onRetry={() => tracked.refetch()} />
             ) : option ? (
-              <OptionTrackingPanel storeProductId={storeProductId} productName={info.name} option={option} item={trackedHere.get(option.id)} />
+              <OptionTrackingPanel storeProductId={storeProductId} productName={info.name} option={option} item={trackedOption} />
             ) : (
               <EmptyState
                 icon={TouchAppOutlined}
@@ -100,6 +103,13 @@ export function ProductDetailsPage() {
 
         <ProductInfoCard info={info} />
       </Box>
+
+      {trackedOption && (
+        <Stack spacing={3} sx={{ mt: 3 }}>
+          <PriceHistorySection item={trackedOption} />
+          <OptionScrapeLog item={trackedOption} />
+        </Stack>
+      )}
     </>
   );
 }

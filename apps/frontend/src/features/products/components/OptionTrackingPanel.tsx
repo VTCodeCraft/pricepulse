@@ -2,14 +2,14 @@ import AddOutlined from '@mui/icons-material/AddOutlined';
 import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined';
 import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
 import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { formatDistanceToNowStrict, isPast } from 'date-fns';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
+import { Detail, DetailList } from '../../../components/common/DetailList';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { formatDateTime, formatPrice, formatRelativeTime } from '../../../lib/utils/format';
 import { priceChangePct, stockStatus } from '../../../lib/utils/observations';
@@ -52,7 +52,7 @@ function TrackedOption({ item }: { item: TrackedProduct }) {
         </Typography>
       )}
 
-      <Box component="dl" sx={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 3, rowGap: 1.25, my: 2.5 }}>
+      <DetailList sx={{ my: 2.5 }}>
         <Detail label="Stock">
           <Stack direction="row" spacing={1} component="span" sx={{ alignItems: 'center' }}>
             <StatusBadge status={stockStatus(item.latest?.stock)} />
@@ -87,7 +87,7 @@ function TrackedOption({ item }: { item: TrackedProduct }) {
           </Tooltip>
         </Detail>
         <Detail label="Tracked since">{formatDateTime(item.createdAt)}</Detail>
-      </Box>
+      </DetailList>
 
       <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
         <Button
@@ -135,19 +135,6 @@ function UntrackedOption({ storeProductId, productName, option }: { storeProduct
           {trackProduct.error.message}
         </Alert>
       )}
-    </>
-  );
-}
-
-function Detail({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <>
-      <Typography component="dt" variant="body2" sx={{ color: 'text.secondary' }}>
-        {label}
-      </Typography>
-      <Typography component="dd" variant="body2" sx={{ m: 0, display: 'flex', alignItems: 'center', minWidth: 0 }}>
-        {children}
-      </Typography>
     </>
   );
 }
