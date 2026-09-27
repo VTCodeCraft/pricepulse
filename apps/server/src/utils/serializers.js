@@ -112,6 +112,8 @@ export function layoutVersionJson(row) {
     firstSeenAt: row.first_seen_at,
     lastSeenAt: row.last_seen_at,
     seenCount: row.seen_count,
+    structureHash: row.structure_hash,
+    structureCheckedAt: row.structure_checked_at,
     manifest: row.manifest,
   };
 }

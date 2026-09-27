@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checkDomContract, classifyChange, hashManifest, hashSchema, validateManifest } from '../src/scraper/layout.js';
+import { checkDomContract, classifyChange, hashManifest, hashSchema, pageStructure, validateManifest } from '../src/scraper/layout.js';
 import { htmlToElement } from '../src/scraper/parser.js';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures');
@@ -72,5 +72,52 @@ describe('checkDomContract', () => {
       ok: false,
       missing: ['.offer-panel', 'option chips'],
     });
+  });
+});
+
+describe('pageStructure', () => {
+  const panelHtml = name => readFileSync(join(FIXTURES, 'offers', `${name}.html`), 'utf8');
+  const structure = (html, manifest = newer) => pageStructure(htmlToElement(html), manifest);
+  const baseline = structure(panelHtml('ready-default-clean'));
+
+  it('describes where the price, stock and price button sit, without rotating names', () => {
+    expect(baseline.signature).toEqual({
+      panel: { tag: 'div', live: 'polite' },
+      price: ['div.offer-row', 'priceValue'],
+      stock: ['div.offer-facts', 'stock'],
+      button: ['div.offer-foot', 'button.ctl.ctl-plain.ctl-xs'],
+    });
+    expect(structure(panelHtml('ready-default-clean')).hash).toBe(baseline.hash);
+    // Same hash the live store gave on 2026-09-27 (revision 634003) for products 2179 and 2852.
+    expect(baseline.hash).toBe('f2df7c36df0c6119');
+  });
+
+  it.each(['ready-member-price-decoy', 'ready-rs-decimal-sold-out', 'ready-trailing-tax-suffix', 'ready-unicode-digits'])(
+    'other products, prices, formats, stock and decoys do not change it (%s)',
+    name => expect(structure(panelHtml(name)).hash).toBe(baseline.hash),
+  );
+
+  it('a class rotation with a new price tag and fact order does not change it', () => {
+    // The same panel rendered under revision 633001: every manifest class renamed, <data> for the price, facts reordered.
+    let html = panelHtml('ready-default-clean');
+    for (const [key, name] of Object.entries(newer.classes)) html = html.replaceAll(name, older.classes[key]);
+    html = html.replace(/<span class="(\w+) fgy-x1"([^>]*)>([^<]*)<\/span>/, '<data class="zz81kq fgy-x1"$2>$3</data>');
+    const facts = html.match(/<div class="offer-facts">(.*)<\/div><div class="offer-foot">/)[1];
+    const [rating, delivery, seller, stock] = facts.match(/<div class="[\w-]+"[^>]*>.*?<\/div>(?=<div class="[\w-]+"|$)/g);
+    html = html.replace(facts, stock + seller + delivery + rating);
+    expect(html).toContain('<data class="zz81kq fgy-x1"');
+    expect(structure(html, older).hash).toBe(baseline.hash);
+  });
+
+  it('moving the price or the stock, or losing the button, changes it', () => {
+    const html = panelHtml('ready-default-clean');
+    const wrappedPrice = html.replace(/(<span class="vlo9guy kjr-w7"[^>]*>[^<]*<\/span>)/, '<div class="price-box">$1</div>');
+    expect(structure(wrappedPrice)).toMatchObject({ signature: { price: ['div.offer-row', 'div.price-box', 'priceValue'] } });
+    expect(structure(wrappedPrice).hash).not.toBe(baseline.hash);
+
+    const stockInRow = html.replace(/(<div class="rtz-w7">.*?<\/span><\/div>)/, '').replace('<div class="offer-row">', '<div class="offer-row"><div class="rtz-w7"><span class="avail-pill avail-yes">In stock</span></div>');
+    expect(structure(stockInRow).signature.stock).toEqual(['div.offer-row', 'stock']);
+
+    expect(structure(html.replace(/<button[^>]*>.*?<\/button>/, '')).signature.button).toBeNull();
   });
 });

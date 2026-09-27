@@ -58,7 +58,7 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
 
   describe('migrations', () => {
     it('apply once, in order, and create every table', async () => {
-      expect(await migrations.migrate()).toEqual(['001_init.sql', '002_catalog_synced_at_nullable.sql']);
+      expect(await migrations.migrate()).toEqual(['001_init.sql', '002_catalog_synced_at_nullable.sql', '003_page_structure.sql']);
       expect(await migrations.migrate()).toEqual([]);
       const { rows } = await sql.query("select tablename from pg_tables where schemaname = 'public' order by tablename");
       expect(rows.map(r => r.tablename)).toEqual(['alerts', 'layout_versions', 'products', 'schema_migrations', 'scrape_attempts', 'scrape_runs', 'tracked_products']);
@@ -337,6 +337,30 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
         observe(95000, 7);
         await runner.runTick({ trigger: 'cli', force: true }); // a rise
         expect(await alertRows()).toHaveLength(2);
+      });
+
+      it('compares the page structure of every successful scrape and alerts once when it changes', async () => {
+        await track('o1', new Date());
+        const withStructure = (hash, price) => scraper.scrapeWithRetry.mockImplementationOnce(async ({ optionId }) => {
+          const result = scraped(optionId);
+          const signature = { price: price ?? ['div.offer-row', 'priceValue'], stock: ['div.offer-facts', 'stock'] };
+          return { ...result, result: { ...result.result, layout: { ...result.result.layout, structure: { hash, signature } } } };
+        });
+        const structureAlerts = () => sql.query("select data from alerts where type = 'structure_changed'").then(r => r.rows);
+
+        withStructure('aaaa');
+        await runner.runTick({ trigger: 'cli', force: true }); // first seen
+        withStructure('aaaa');
+        await runner.runTick({ trigger: 'cli', force: true }); // unchanged
+        expect(await structureAlerts()).toEqual([]);
+        expect((await layoutVersions.latestStructure()).structure_hash).toBe('aaaa');
+
+        withStructure('bbbb', ['div.offer-row', 'div.price-box', 'priceValue']);
+        await runner.runTick({ trigger: 'cli', force: true });
+        withStructure('bbbb', ['div.offer-row', 'div.price-box', 'priceValue']);
+        await runner.runTick({ trigger: 'cli', force: true });
+        expect(await structureAlerts()).toEqual([{ data: expect.objectContaining({ changed: ['price'], previousHash: 'aaaa', currentHash: 'bbbb' }) }]);
+        expect((await layoutVersions.latestStructure()).structure_hash).toBe('bbbb');
       });
 
       it('the same observation never alerts twice', async () => {

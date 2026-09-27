@@ -75,6 +75,35 @@ export function classifyChange(previous, current) {
   return 'schema_changed';
 }
 
+// The structure of a ready price panel, independent of what the store rotates on purpose: where the price, the stock
+// and the price button sit inside the panel, as paths of tag names and stable class names. Elements named in the
+// manifest become their manifest key (the class and the price tag rotate), generated class names (with digits) are
+// dropped, and nothing inside the price or stock element is read, so prices, stock text, the price format, seller
+// names and fact order never change it. Moving the price or stock to a different place does.
+export function pageStructure(panel, manifest) {
+  const roles = new Map(Object.entries(manifest.classes ?? {}).map(([key, name]) => [name, key]));
+  const token = element => {
+    const role = [...element.classList].find(name => roles.has(name));
+    if (role) return roles.get(role);
+    const stable = [...element.classList].filter(name => !/\d/.test(name)).sort();
+    return [element.tagName.toLowerCase(), ...stable].join('.');
+  };
+  const pathTo = selector => {
+    const found = panel.querySelectorAll(selector);
+    if (found.length !== 1) return null;
+    const path = [];
+    for (let node = found[0]; node && node !== panel; node = node.parentElement) path.unshift(token(node));
+    return path;
+  };
+  const signature = {
+    panel: { tag: panel.tagName.toLowerCase(), live: panel.getAttribute('aria-live') },
+    price: pathTo(`${manifest.priceTag}.${manifest.classes?.priceValue}`),
+    stock: pathTo(`.${manifest.classes?.stock}`),
+    button: pathTo('button'),
+  };
+  return { hash: sha256(canonicalJson(signature)), signature };
+}
+
 function shape(value) {
   if (Array.isArray(value)) return ['array'];
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, shape(v)]));

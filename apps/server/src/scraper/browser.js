@@ -4,7 +4,7 @@
 import { chromium } from 'playwright';
 import { config } from '../config.js';
 import { installFaults } from './faults.js';
-import { checkDomContract, hashManifest, hashSchema } from './layout.js';
+import { checkDomContract, hashManifest, hashSchema, pageStructure } from './layout.js';
 import { extractOffer, htmlToElement } from './parser.js';
 import { ScrapeError, runWithRetry, sleep } from './retry.js';
 import { getItem } from './store.js';
@@ -97,9 +97,11 @@ export async function scrapeOption(browser, { productId, optionId }, { faultPlan
     evidence.clicks += await clickUntilAccepted(page, checkButton);
     await waitForTerminalState(page);
     let offer;
+    let panelElement;
     for (;;) {
       try {
-        offer = extractOffer(htmlToElement(await panel.evaluate(el => el.outerHTML)), manifest);
+        panelElement = htmlToElement(await panel.evaluate(el => el.outerHTML));
+        offer = extractOffer(panelElement, manifest);
         break;
       } catch (error) {
         if (error.code !== 'pending_price' || evidence.pendingRechecks >= config.pendingRechecks) throw error;
@@ -126,7 +128,13 @@ export async function scrapeOption(browser, { productId, optionId }, { faultPlan
       currency: offer.currency,
       stock: offer.stock,
       displayed: offer.displayed,
-      layout: { revision: manifest.revision, variant: manifest.variant, manifestHash: hashManifest(manifest), schemaHash: hashSchema(manifest) },
+      layout: {
+        revision: manifest.revision,
+        variant: manifest.variant,
+        manifestHash: hashManifest(manifest),
+        schemaHash: hashSchema(manifest),
+        structure: pageStructure(panelElement, manifest),
+      },
       evidence: {
         ...evidence,
         storeFailures: traffic.failureCount(),

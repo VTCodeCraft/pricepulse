@@ -15,3 +15,19 @@ export async function recordLayoutVersion({ manifestHash, schemaHash, revision, 
 export async function listLayoutVersions(limit) {
   return (await query('select * from layout_versions order by last_seen_at desc, id desc limit $1', [limit])).rows;
 }
+
+// The page structure seen most recently, from any layout version, or undefined before the first check.
+export async function latestStructure() {
+  const { rows } = await query(
+    `select id, structure_hash, structure, structure_checked_at from layout_versions
+     where structure_hash is not null order by structure_checked_at desc, id desc limit 1`,
+  );
+  return rows[0];
+}
+
+export async function setStructure(layoutVersionId, { hash, signature }) {
+  await query(
+    'update layout_versions set structure_hash = $2, structure = $3, structure_checked_at = now() where id = $1',
+    [layoutVersionId, hash, json(signature)],
+  );
+}

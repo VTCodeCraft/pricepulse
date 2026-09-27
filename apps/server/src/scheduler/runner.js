@@ -13,6 +13,7 @@ import { parsePrice } from '../scraper/parser.js';
 import { ScrapeError, sleep } from '../scraper/retry.js';
 import { getItem, getManifest } from '../scraper/store.js';
 import { recordObservationAlerts } from '../services/alerts.service.js';
+import { checkPageStructure } from '../services/layout.service.js';
 import { isDue, nextSlotAfterRun } from './schedule.js';
 
 // trigger: 'cron' | 'manual' | 'initial' | 'cli'. By default only due options are scraped;
@@ -88,6 +89,11 @@ async function executeRun(run, { trigger, trackedIds, force = false, faultPlan, 
         const previous = attempt.outcome === 'failed' ? undefined : await latestObservation(tracked.id);
         await finishAttempt(attemptId, attempt);
         counts[attempt.outcome]++;
+        if (attempt.structure) {
+          await checkPageStructure({ structure: attempt.structure, layoutVersionId: attempt.layoutVersionId, attemptId })
+            .then(status => status === 'changed' && log('store page structure changed; alert recorded'))
+            .catch(error => log(`could not check the page structure for attempt ${attemptId}: ${error.message}`));
+        }
         if (previous) {
           await recordObservationAlerts({ tracked, previous: observation(previous), current: attempt, attemptId })
             .then(alerts => alerts.forEach(alert => log(`alert: ${alert.title} (${alert.message})`)))
@@ -133,6 +139,7 @@ function successfulAttempt({ outcome, result, tries }, layoutVersionIdValue) {
     tries: tries.length,
     layoutVersionId: layoutVersionIdValue,
     layoutRevision: result.layout.revision,
+    structure: result.layout.structure,
     extras: {
       mrp: priceOrNull(decoys.mrp[0]),
       memberPrice: priceOrNull(decoys.memberPrice[0]?.replace(/^Member price\s*/, '')),

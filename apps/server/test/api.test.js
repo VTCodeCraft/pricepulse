@@ -130,7 +130,7 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
     it('reports health, the database and applied migrations', async () => {
       const { status, body } = await api('GET', '/health');
       expect(status).toBe(200);
-      expect(body).toMatchObject({ ok: true, database: { status: 'ok', migrations: ['001_init.sql', '002_catalog_synced_at_nullable.sql'] } });
+      expect(body).toMatchObject({ ok: true, database: { status: 'ok', migrations: ['001_init.sql', '002_catalog_synced_at_nullable.sql', '003_page_structure.sql'] } });
     });
 
     it('answers unknown routes and broken JSON with JSON errors', async () => {
@@ -451,6 +451,19 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
       const { body } = await api('GET', '/layout');
       expect(body.versions[0]).toMatchObject({ revision: 633003, supported: true, seenCount: 1 });
       expect(body.alerts.map(x => x.type)).toEqual(['structure_changed']);
+    });
+
+    it('reports the current page structure and an unacknowledged change', async () => {
+      expect((await api('GET', '/layout')).body.structure).toMatchObject({ status: 'unknown', hash: null });
+      const id = await layoutVersions.recordLayoutVersion({ manifestHash: 'h1', schemaHash: 's1', revision: 633003, variant: 3, manifest, supported: true });
+      await layoutVersions.setStructure(id, { hash: 'aaaa', signature: { price: ['div.offer-row', 'priceValue'] } });
+      expect((await api('GET', '/layout')).body.structure).toMatchObject({ status: 'unchanged', hash: 'aaaa', lastChange: null });
+      const change = await alerts.insertAlert({ type: 'structure_changed', severity: 'warning', dedupeKey: 'attempt:1', title: 'Store page structure changed', message: 'price' });
+      const { body } = await api('GET', '/layout');
+      expect(body.structure).toMatchObject({ status: 'changed', lastChange: { id: change.id } });
+      expect(body.versions[0]).toMatchObject({ structureHash: 'aaaa' });
+      await api('POST', `/alerts/${change.id}/read`);
+      expect((await api('GET', '/layout')).body.structure.status).toBe('unchanged');
     });
   });
 });
