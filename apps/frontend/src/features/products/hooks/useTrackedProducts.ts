@@ -9,7 +9,7 @@ import type { TrackedProduct } from '../../../types/product';
 import type { RunDetail } from '../../../types/scrape';
 
 export function useTrackedProducts() {
-  return useQuery({ queryKey: queryKeys.tracked, queryFn: listTracked });
+  return useQuery({ queryKey: queryKeys.tracked, queryFn: () => listTracked() });
 }
 
 // Tracking a new option also starts its first scrape in the background; the list is refreshed again when that

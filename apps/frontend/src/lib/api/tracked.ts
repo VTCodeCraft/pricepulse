@@ -1,13 +1,20 @@
 import type { TrackRequest, TrackResponse, TrackedProduct } from '../../types/product';
-import type { ScrapeAttempt, ScrapeStarted } from '../../types/scrape';
+import type { PriceHistory, ScrapeAttempt, ScrapeStarted } from '../../types/scrape';
 import { api } from './client';
 
-export async function listTracked(): Promise<TrackedProduct[]> {
-  const { data } = await api.get<{ items: TrackedProduct[] }>('/tracked');
+// Active options only, unless `includeInactive`: untracked options keep their history and scrape log.
+export async function listTracked({ includeInactive = false } = {}): Promise<TrackedProduct[]> {
+  const { data } = await api.get<{ items: TrackedProduct[] }>('/tracked', { params: includeInactive ? { includeInactive } : undefined });
   return data.items;
 }
 
-// Every attempt of one option, failed ones included, newest first.
+// Validated observations only (success / retried), the most recent `limit` of them (at most 1000), oldest first.
+export async function getHistory(id: number, limit: number): Promise<PriceHistory> {
+  const { data } = await api.get<PriceHistory>(`/tracked/${id}/history`, { params: { limit } });
+  return data;
+}
+
+// Every attempt of one option, failed and running ones included, newest first (at most 500).
 export async function listAttempts(id: number, limit: number): Promise<ScrapeAttempt[]> {
   const { data } = await api.get<{ attempts: ScrapeAttempt[] }>(`/tracked/${id}/attempts`, { params: { limit } });
   return data.attempts;

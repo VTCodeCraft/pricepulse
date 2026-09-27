@@ -13,7 +13,7 @@ export function useScrapeCounts() {
   const tracked = useTrackedProducts();
   return useQueries({
     queries: (tracked.data ?? []).map(item => ({
-      queryKey: queryKeys.attempts(item.id),
+      queryKey: queryKeys.attempts(item.id, LOG_LIMIT),
       queryFn: () => listAttempts(item.id, LOG_LIMIT),
     })),
     combine: results => ({

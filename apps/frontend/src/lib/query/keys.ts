@@ -1,8 +1,12 @@
 // Every React Query key in one place, so a mutation can invalidate exactly what it changed.
-// Attempt logs sit under `tracked`, so invalidating the tracked list refreshes them too.
+// Everything about tracked options (the lists, each option's history and scrape log) sits under `tracked`, so
+// invalidating it after a scrape or a tracking change refreshes all of them.
 export const queryKeys = {
   tracked: ['tracked'] as const,
-  attempts: (trackedId: number) => ['tracked', trackedId, 'attempts'] as const,
+  trackedIncludingInactive: ['tracked', 'including-inactive'] as const,
+  history: (trackedId: number) => ['tracked', trackedId, 'history'] as const,
+  attempts: (trackedId: number, limit: number) => ['tracked', trackedId, 'attempts', limit] as const,
+  run: (runId: number) => ['runs', runId] as const,
   catalogSearch: (query: string) => ['catalog', 'search', query] as const,
   product: (storeProductId: number) => ['catalog', 'product', storeProductId] as const,
 };

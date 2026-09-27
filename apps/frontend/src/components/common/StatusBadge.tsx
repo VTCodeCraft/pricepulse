@@ -3,17 +3,20 @@ import Autorenew from '@mui/icons-material/Autorenew';
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined';
 import HelpOutlineOutlined from '@mui/icons-material/HelpOutlineOutlined';
 import HighlightOff from '@mui/icons-material/HighlightOff';
+import HourglassEmptyOutlined from '@mui/icons-material/HourglassEmptyOutlined';
 import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
 import RemoveShoppingCartOutlined from '@mui/icons-material/RemoveShoppingCartOutlined';
 import Box from '@mui/material/Box';
 
 type Tone = 'success' | 'warning' | 'error' | 'neutral';
 
-// Scrape outcomes (success / retried / failed) and stock states. Each has a label and an icon, never colour alone.
+// Scrape outcomes (success / retried / failed, or running while unfinished) and stock states.
+// Each has a label and an icon, never colour alone.
 const STATUSES = {
   success: { label: 'Success', tone: 'success', icon: CheckCircleOutlineOutlined },
   retried: { label: 'Retried', tone: 'warning', icon: Autorenew },
   failed: { label: 'Failed', tone: 'error', icon: HighlightOff },
+  running: { label: 'Running', tone: 'neutral', icon: HourglassEmptyOutlined },
   inStock: { label: 'In stock', tone: 'success', icon: Inventory2Outlined },
   outOfStock: { label: 'Out of stock', tone: 'error', icon: RemoveShoppingCartOutlined },
   unknown: { label: 'Unknown', tone: 'neutral', icon: HelpOutlineOutlined },

@@ -62,3 +62,16 @@ export type ScrapeAttempt = {
   layoutRevision: number | null;
   tryLog: TryLogEntry[];
 };
+
+// One validated observation (GET /api/tracked/:id/history). The database guarantees that a success or retried
+// attempt carries a price, currency and stock, and that a failed one carries none.
+export type PricePoint = {
+  observedAt: string;
+  price: number;
+  currency: string;
+  stock: number;
+  outcome: Exclude<ScrapeOutcome, 'failed'>;
+};
+
+// The most recent `limit` observations of one option, oldest first. The endpoint takes no date range.
+export type PriceHistory = { trackedId: number; observations: PricePoint[] };

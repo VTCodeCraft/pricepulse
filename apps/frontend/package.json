@@ -30,7 +30,9 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.89.0",
+    "react-is": "^19.3.0",
     "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1",
     "sonner": "^2.0.8",
     "zod": "^4.6.5"
   },
