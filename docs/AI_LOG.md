@@ -5,11 +5,21 @@ found, with evidence. This file feeds the "What AI got wrong" section of the des
 
 ## AI usage
 
-| Tool | Used for |
-|---|---|
-| Claude Code (Claude Opus 5.5, desktop app) | Reading the assignment; inspecting the mock store (HTTP, JS bundle, API probing, throwaway Playwright probes); the implementation plan; repo scaffolding (Phase 0); fixtures, fixture tests and store notes (Phase 1). |
+Claude Code (Claude Opus 5.5, desktop app) wrote the code, tests and documentation in this repository under my
+direction, and ran the commands (tests, deployment checks, git). I set the scope and the phase order, reviewed every
+phase before approving its commits, and did the account and dashboard work. Commits are made under my GitHub account
+without AI trailers; this file is the disclosure.
 
-I review every AI-generated change before committing it.
+| Phase | Claude Code | Me |
+|---|---|---|
+| Planning | Read the assignment; inspected the mock store (HTTP, JS bundle, API probing, throwaway Playwright probes); drafted the architecture and plan | Chose the scope (all bonuses) and the repo conventions |
+| 0 Repo | Scaffolded the pnpm + Turborepo monorepo and the CI workflow | Created the GitHub repository |
+| 1 Fixtures | Captured the fixtures; wrote the fixture tests and store notes | Had the React-internals capture and recon leftovers removed |
+| 2 Render gate | Wrote the Dockerfile and a temporary probe route, measured it on Render, then removed the probe | Created the Render service and its environment variables |
+| 3 Scraper | Wrote the scraper, parser, page-structure checks, retry policy, fault injection, CLI and tests | Reviewed |
+| 4 Database | Wrote the schema, migrations, scheduler, runner and tests | Asked for one commit per step |
+| 5 API | Wrote the HTTP API, catalogue sync, CSV export and integration tests; verified Render and Supabase | Created the Supabase project, added its CA certificate, enabled Enforce SSL, set `DATABASE_URL` on Render |
+| 6 Schedule | Chose the tracked options, measured Render cold starts, traced the failing cron calls to Render's loading page, checked the cron runs in Supabase, wrote the scheduling notes | Created and configured the two cron-job.org jobs (method, headers, schedules) and ran their test runs; chose to track 10 options |
 
 ## Mistakes
 
@@ -90,3 +100,9 @@ I review every AI-generated change before committing it.
 - **Evidence:** a live `POST /api/tracked` with `priceDropThresholdPct: 7.5` returned 500; the log showed `invalid input syntax for type integer: "7.5"`.
 - **Fix:** `coalesce($5::numeric, 5)`; the API test now tracks with a fractional threshold.
 - **Lesson:** cast parameters explicitly when a literal sits next to them; test with realistic values, not only round numbers.
+
+### 14. Diagnosed the failing cron calls by guessing (Phase 6)
+- **Mistake:** the AI measured Render cold starts with curl and concluded that a ~14 s cold start fits cron-job.org's 30 s limit. When the scheduled calls then failed with "output too large", it guessed at causes in turn: the job's time zone, "the requests never reach the app, awake or asleep" (because no run appeared), and a bot or challenge page aimed at cron-job.org's servers.
+- **Evidence:** the job was already set to UTC; a request that reaches the app but gets `401` also creates no run, and once the scrape job's method and `Authorization` header were fixed its calls to an awake instance created runs. The real cause was Render's 258 KB "Application loading" page, served to any request whose `Accept` header includes `text/html` while the instance is asleep. curl sends `Accept: */*`, so the cold-start tests never met that page.
+- **Fix:** reproduced the failure by sending requests with different `Accept` headers to a sleeping instance; both cron-job.org jobs now send `Accept: application/json`, and the wake job runs at minutes 50 and 55.
+- **Lesson:** test with the real client's request, headers included, and read what the client received before naming a cause.
