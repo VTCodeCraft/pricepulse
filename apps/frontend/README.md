@@ -44,6 +44,23 @@ Root directory `apps/frontend`, framework preset Vite, build command `pnpm build
 Each page is loaded as its own chunk. Every page needs the `react`, `query` and `mui` chunks; the `data-grid` chunk
 and the charts load only with the pages that use them, and the command palette on first use.
 
+## Design
+
+`src/theme/theme.ts` is the single source of truth: palettes, typography, radii, the mono and eyebrow styles, motion
+timing, and the MUI/DataGrid component overrides. Components read colours through `theme.vars.palette`.
+
+- Colour: black, white and one accent, orange `#EE5A10` (dark theme `#FF6A1F`), in the range of INE's brand orange;
+  neutral grays; semantic green/amber/red only for states. Light: `#FAFAFA` page, white surfaces, `#111` ink. Dark:
+  `#070707` page, `#0F0F0F` surfaces. Primary buttons are ink and turn orange on hover.
+- Type: Geist for the interface, Geist Mono for ids, timestamps, SKUs, labels and shortcuts.
+- Structure: hairline rules and whitespace instead of cards (`Section`), a metrics strip on the dashboard, a hairline
+  catalogue grid on All Products, a compact list for tracked products on phones.
+- Brand: `components/common/BrandMark.tsx`, an original geometric P with an orange square (the latest data point); the
+  same drawing is `public/favicon.svg`.
+- Motion: one easing (`cubic-bezier(0.16, 1, 0.3, 1)`); page fade, sliding nav marker, theme icon swap. Changing the
+  theme reveals the new one as a circle from the control (View Transitions API, `theme/useThemeToggle.ts`); instant
+  without the API or with reduced motion.
+
 ## Products
 
 - `/products` (All Products): every product of the demo store, 24 per page from the server
