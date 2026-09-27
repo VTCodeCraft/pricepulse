@@ -21,6 +21,7 @@ without AI trailers; this file is the disclosure.
 | 5 API | Wrote the HTTP API, catalogue sync, CSV export and integration tests; verified Render and Supabase | Created the Supabase project, added its CA certificate, enabled Enforce SSL, set `DATABASE_URL` on Render |
 | 6 Schedule | Chose the tracked options, measured Render cold starts, traced the failing cron calls to Render's loading page, checked the cron runs in Supabase, fixed the two bugs the first production runs exposed (entries 15 and 16), wrote the scheduling notes | Created and configured the two cron-job.org jobs (method, headers, schedules) and ran their test runs; chose to track 10 options |
 | Structure cleanup | Split `routes.js` and `db.js` and moved the server modules into `routes/`, `middleware/`, `services/`, `scheduler/`, `scraper/`, `db/` and `utils/` without changing behavior; compared recorded API responses before and after | Asked for the cleanup and set the target layout |
+| 7 Frontend (F1) | Set up the TypeScript + MUI app shell: theme tokens, sidebar, header, routes, shared loading/empty/error states, route code-splitting; checked it in the browser at 1440/1024/768/375 px | Set the stack, structure, design direction and batch order |
 
 ## Mistakes
 
@@ -119,3 +120,9 @@ without AI trailers; this file is the disclosure.
 - **Evidence:** Render log at 08:08 UTC on 2026-09-27: `locator.click: Target page, context or browser has been closed` on the "Reject cookies" button, `triggerUncaughtException(err, true /* fromPromise */)`, then "Instance failed ... Exited with status 1", which killed run 19. Reproduced with real Playwright by closing the context while the handler waited on the button: exit code 1 with the old handler; with the fixed one the process stays up and the scrape fails as `browser_crash`.
 - **Fix:** the consent handler and the fault-injection route handlers (called the same way) catch their own errors; the scrape's own awaited action still fails and is classified. Tests cover a closed page for both.
 - **Lesson:** a callback that a library invokes from an event listener must not throw; check how a library calls your code before relying on `try/catch` around it.
+
+### 17. The first shell ignored the tablet requirement (Phase 7, F1)
+- **Mistake:** the first layout switched to the mobile drawer below 900 px, although the brief asked for a collapsible sidebar on tablets and a drawer only on mobile.
+- **Evidence:** at 768 px the browser check showed the menu button and no sidebar.
+- **Fix:** three widths now: from 900 px a sidebar the user can collapse; 600–899 px an icon-only sidebar; below 600 px the drawer. Re-checked at 768 and 375 px.
+- **Lesson:** check each breakpoint against the brief, not only that the layout works.
