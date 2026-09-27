@@ -184,12 +184,12 @@ the browser are mocked, so no test touches the live store. CI runs the full suit
 
 | Part | Host | Notes |
 |---|---|---|
-| API + scraper | Render, Docker (`apps/server/Dockerfile`), Singapore | Auto-deploys `main`; migrations run on start; health check `/api/health` |
+| API + scraper | Render, Docker (`apps/server/Dockerfile`), Singapore | Deployed after CI by the Deploy workflow; migrations run on start; health check `/api/health` |
 | Frontend | Vercel, root directory `apps/frontend` | `VITE_API_URL` set in the project; `vercel.json` rewrites routes to `index.html` |
 | Database | Supabase PostgreSQL | Session pooler, TLS verified against the committed Supabase CA (`apps/server/certs/`) |
 | Schedule | cron-job.org | Hourly trigger and wake-up calls |
 
-`.github/workflows/deploy.yml` deploys the exact commit CI tested, only after CI passes on `main`: the backend
-through a Render deploy hook, the frontend with the Vercel CLI (Vercel's own Git deploys of `main` are off). The
-credentials are secrets of the GitHub `production` environment. See [`docs/deployment.md`](docs/deployment.md). Render and Supabase measurements (memory, cold starts, TLS) are in
+`.github/workflows/deploy.yml` runs only after CI passes on `main` and deploys the backend through a Render deploy
+hook pinned to the tested commit, then checks the live API and site. The frontend is deployed by Vercel's Git
+integration. See [`docs/deployment.md`](docs/deployment.md). Render and Supabase measurements (memory, cold starts, TLS) are in
 [`apps/server/docs/deployment-notes.md`](apps/server/docs/deployment-notes.md).

@@ -114,3 +114,12 @@ checks caught, and how each was corrected.
   tolerance. It would fail near every hour.
 - **Found:** reviewing `isDue` before committing.
 - **Fix:** removed the assertion. Repeated ticks are covered by the "overdue option runs once" test.
+
+### 16. A deploy path switched on before it was proven (CI/CD)
+- **Mistake:** moved frontend deploys to the Vercel CLI in GitHub Actions and turned off Vercel's own Git deploys in
+  the same step, before the CLI path had worked once.
+- **Found:** Deploy runs #8 to #13 failed at `vercel pull` ("Could not retrieve Project Settings"); credential checks
+  added to the workflow narrowed it to the IDs and then the token's access. No frontend deploys happened meanwhile.
+  The live site stayed up on its last deployment.
+- **Fix:** returned the frontend to Vercel's Git integration and kept the Render deploy hook, which worked from its
+  first run.

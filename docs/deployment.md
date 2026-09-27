@@ -16,37 +16,23 @@ push / pull request ──► CI (.github/workflows/ci.yml)
                          lint · typecheck · test (with PostgreSQL) · build · actionlint
 push to main, CI passed ──► Deploy (.github/workflows/deploy.yml)
                               backend: Render deploy hook, pinned to the tested commit
-                              frontend: Vercel CLI build + deploy --prod of the tested commit
-                              smoke: GET /api/health on production
+                              smoke: GET /api/health and the live site
+push to main ──► Vercel Git integration builds and deploys apps/frontend
 ```
 
-- `deploy.yml` starts from `workflow_run` of CI, and each job requires the CI run to be a successful **push to
-  main**. Pull requests and other branches never deploy.
+- `deploy.yml` starts from `workflow_run` of CI and requires the CI run to be a successful **push to main**. Pull
+  requests and other branches never deploy through it.
 - It deploys `workflow_run.head_sha`, the commit CI tested, not whatever `main` points to later.
 - One deployment at a time (`concurrency: deploy-production`).
+- The frontend is built and deployed by Vercel from `apps/frontend` on every push to `main` (preview deployments
+  for other branches).
 
 ## Secrets
 
-Set these as secrets of the `production` environment (GitHub → Settings → Environments → production). They are
-passed to steps through `env` and never echoed; GitHub masks them in logs.
-
-| Secret | Where to get it |
+| Secret (GitHub → Settings → Environments → production) | Where to get it |
 |---|---|
 | `RENDER_DEPLOY_HOOK_URL` | Render → service → Settings → Deploy Hook |
-| `VERCEL_TOKEN` | Vercel → Account Settings → Tokens |
-| `VERCEL_ORG_ID` (`team_…`), `VERCEL_PROJECT_ID` (`prj_…`) | `.vercel/project.json` after `vercel link` in `apps/frontend` (not committed) |
 
-The frontend job checks these before deploying (ID prefixes, whitespace, access to the project) and fails with
-the reason, printing only ID prefixes and HTTP status codes.
-
-## One deployment path per target
-
-Render and Vercel also deploy on their own when `main` changes. Until a target's secrets are set, its deploy job
-only logs a notice and the platform's auto-deploy stays in charge, so nothing breaks. Once the secrets are set,
-switch the platform's auto-deploy off so each commit is deployed once, after CI:
-
-- Render: service → Settings → Auto-Deploy → **Off** (the workflow's deploy hook takes over).
-- Vercel: add `"git": { "deploymentEnabled": { "main": false } }` to `apps/frontend/vercel.json`, so pushes to
-  `main` no longer deploy through the Git integration (preview deployments for other branches keep working).
-
-Do these after the secrets are in place, not before: with auto-deploy off and no secrets, nothing would deploy.
+It is passed to the step through `env` and never echoed; GitHub masks it in logs. Without it, the backend job logs a
+notice and Render's own auto-deploy is used. With it, set Render's Auto-Deploy to **Off** so each commit is deployed
+once, after CI.

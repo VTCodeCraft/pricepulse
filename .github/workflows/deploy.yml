@@ -1,11 +1,10 @@
-# Production deployment, gated on CI: runs only when the CI workflow finished successfully for a push to main, and
-# deploys exactly the commit CI tested. Pull requests and other branches never deploy.
+# Production deployment, gated on CI: runs only when the CI workflow finished successfully for a push to main.
+# Pull requests and other branches never deploy.
 #
-# Credentials come from the repository's `production` environment secrets and are never printed:
-#   RENDER_DEPLOY_HOOK_URL                         backend (Render deploy hook)
-#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID frontend (Vercel CLI)
-# Until a target's secrets are set its job only logs a notice, and the platform's own auto-deploy keeps deploying it.
-# Once they are set, turn that platform's auto-deploy off so each commit is deployed once (docs/deployment.md).
+# Backend: the Render deploy hook, pinned to the commit CI tested. The hook URL is the `production` environment
+# secret RENDER_DEPLOY_HOOK_URL and is never printed; without it the job logs a notice and Render's auto-deploy is
+# used instead.
+# Frontend: deployed by Vercel's Git integration when main changes (apps/frontend, see docs/deployment.md).
 name: Deploy
 
 on:
@@ -41,77 +40,17 @@ jobs:
           curl --fail --silent --show-error --max-time 60 -X POST -o /dev/null "${RENDER_DEPLOY_HOOK_URL}&ref=${COMMIT}"
           echo "Render deploy of ${COMMIT} requested."
 
-  frontend:
+  smoke:
     needs: backend
     runs-on: ubuntu-latest
-    environment: production
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
-      - name: Check credentials
-        id: credentials
-        run: |
-          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "::notice::Vercel secrets are not set; Vercel's Git integration handles the frontend."
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-            # Fail early with a readable reason; only ID prefixes and HTTP status codes are printed, never a value.
-            problems=""
-            for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
-              case "${!name}" in *[[:space:]]*) problems="$problems $name contains whitespace or a line break;" ;; esac
-            done
-            case "$VERCEL_ORG_ID" in team_*) ;; *) problems="$problems VERCEL_ORG_ID should start with team_ (starts with ${VERCEL_ORG_ID:0:4});" ;; esac
-            case "$VERCEL_PROJECT_ID" in prj_*) ;; *) problems="$problems VERCEL_PROJECT_ID should start with prj_ (starts with ${VERCEL_PROJECT_ID:0:4});" ;; esac
-            # Reading the project proves both the token and the IDs.
-            project=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_ORG_ID}")
-            [ "$project" = 200 ] || problems="$problems project not reachable with this token and team (HTTP $project);"
-            if [ -n "$problems" ]; then
-              echo "::error::Vercel credentials:$problems"
-              exit 1
-            fi
-          fi
-      - if: steps.credentials.outputs.enabled == 'true'
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-      - if: steps.credentials.outputs.enabled == 'true'
-        uses: pnpm/action-setup@v6
-      - if: steps.credentials.outputs.enabled == 'true'
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      # The Vercel project's settings (root directory apps/frontend, VITE_API_URL) are pulled, then the site is built
-      # here and the prebuilt output is deployed to production.
-      - if: steps.credentials.outputs.enabled == 'true'
-        name: Build and deploy to Vercel production
-        # Each command's output goes to the log; if one fails, its last lines are also written as an annotation so the
-        # cause is visible without opening the log (GitHub masks secrets in both).
-        run: |
-          vercel() {
-            if ! npx --yes vercel@latest "$@" --token="$VERCEL_TOKEN" > vercel.log 2>&1; then
-              cat vercel.log
-              echo "::error::vercel $1 failed: $(grep -v '^\s*$' vercel.log | tail -n 8 | tr '\n' ' ' | cut -c1-900)"
-              exit 1
-            fi
-            cat vercel.log
-          }
-          vercel pull --yes --environment=production
-          vercel build --prod
-          vercel deploy --prebuilt --prod
-
-  smoke:
-    needs: [backend, frontend]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Production API answers
+      - name: Production API and site answer
         # A free Render instance may be asleep: allow for a cold start.
         run: |
           for _ in 1 2 3 4 5 6; do
             if curl --fail --silent --show-error --max-time 90 -H 'Accept: application/json' https://pricepulse-bgxj.onrender.com/api/health | grep -q '"ok":true'; then
               echo "API healthy."
+              curl --fail --silent --show-error --max-time 30 -o /dev/null https://pricepulse-smoky.vercel.app/ && echo "Site up."
               exit 0
             fi
             sleep 20
