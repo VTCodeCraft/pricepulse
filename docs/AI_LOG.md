@@ -23,6 +23,7 @@ without AI trailers; this file is the disclosure.
 | Structure cleanup | Split `routes.js` and `db.js` and moved the server modules into `routes/`, `middleware/`, `services/`, `scheduler/`, `scraper/`, `db/` and `utils/` without changing behavior; compared recorded API responses before and after | Asked for the cleanup and set the target layout |
 | 7 Frontend (F1) | Set up the TypeScript + MUI app shell: theme tokens, sidebar, header, routes, shared loading/empty/error states, route code-splitting; checked it in the browser at 1440/1024/768/375 px | Set the stack, structure, design direction and batch order |
 | 7 Frontend (F2) | Built the API layer, response types, React Query hooks, the dashboard KPIs and the tracked-products table with refresh and untrack; checked the numbers against Supabase and the flows against the local API | Reviewed; set the rule that no metric may be invented |
+| 7 Frontend (F3) | Built catalogue search, the Track Product dialog (explicit option choice, review, tracking), the product page with per-option tracking state, and their tests; checked them against the production API (read-only) and the local API (changes) | Reviewed; asked that nothing be pre-selected and production data not be changed |
 
 ## Mistakes
 

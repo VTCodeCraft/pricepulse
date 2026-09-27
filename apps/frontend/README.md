@@ -32,13 +32,25 @@ Root directory `apps/frontend`, framework preset Vite, build command `pnpm build
 - `src/components/layout/`: sidebar, header, shell. `src/components/common/`: page header, loading, empty and error
   states, status badge.
 - `src/lib/api/`: one Axios client (`client.ts`, turns every failure into an `ApiError` with the API's own code) and one
-  module per backend area in use (`tracked.ts`, `runs.ts`). Components never call Axios; they use the feature hooks.
+  module per backend area in use (`tracked.ts`, `runs.ts`, `catalog.ts`). Components never call Axios; they use the feature hooks.
 - `src/lib/query/`: the React Query client and every query key. `src/lib/utils/`: formatting (INR, percentages, times)
   and values derived from observations (stock state, price change).
 - `src/types/`: the API's response shapes, taken from `apps/server/src/utils/serializers.js`.
 - `src/features/<area>/`: pages, components and hooks per section. `src/theme/theme.ts`: every colour token.
 
-Each page is loaded as its own chunk; libraries are split into `react`, `mui` and `vendor` chunks.
+Each page is loaded as its own chunk. Every page needs the `react` and `mui` chunks; the `data-grid` chunk loads only
+with the pages that show a table.
+
+## Products
+
+- `/products`: search the store catalogue (`GET /api/catalog/search`, 300 ms debounce, 2–100 characters, every word must
+  appear in the name) above the table of tracked options. A result opens its product page.
+- `/products/:storeProductId?option=oN`: one store product, live from the store (`GET /api/catalog/products/:id`), with
+  its options and which of them are tracked (from `GET /api/tracked`). If the store does not answer, a tracked product
+  falls back to the details saved when it was tracked.
+- Tracking (dialog or product page): the user picks one option explicitly; nothing is pre-selected and an option that is
+  already tracked cannot be picked again. `POST /api/tracked` answers at once and starts the first scrape in the
+  background; the list refreshes again when that run finishes.
 
 ## Where the dashboard numbers come from
 
