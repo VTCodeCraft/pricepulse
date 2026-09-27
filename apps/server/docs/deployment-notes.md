@@ -50,14 +50,78 @@ returned (pending seen 5 times and re-checked), real quote 500s recovered by the
   verified.
 - Migrations `001_init.sql` and `002_catalog_synced_at_nullable.sql` are applied; the server re-checks on every start.
 
+## Cold starts (measured 2026-09-26 and 27, Phase 6)
+
+Each sample was taken after at least 15 minutes without inbound requests, with a client-side time limit and
+curl's default `Accept: */*`. The database was read directly, so checking a result did not wake the service.
+
+| Sample | Client limit | Client result | Instance | Run created |
+|---|---|---|---|---|
+| C1 18:59:58 UTC | 30 s | `202` after 13.9 s | new pod, uptime 12 s | run 4 (`cron`, nothing due) |
+| C2 19:17:30 UTC, `force` | 30 s | `202` after 14.4 s | new pod, uptime 12 s | run 5: 3 of 3 scraped in the background, 78 s |
+| C3 19:35:31 UTC | 5 s | aborted after 5.0 s | started 2.6 s after the request | **none** |
+
+- Cold starts vary: 13.9 s and 14.4 s above, later 44 s, 53 s and 43.5 s. cron-job.org closes a request after 30
+  seconds on the free plan (`Failed (timeout)`), so a call that meets a sleeping instance can time out.
+- A request abandoned before the instance is ready still starts the instance, but the request itself is dropped:
+  no run is created.
+- Work started by a `202` finishes after the response, with no request open (run 5).
+
+## Render's loading page
+
+While a free instance is asleep or starting, Render answers any request whose `Accept` header includes `text/html`
+with its own "Application loading" page instead of passing it on: HTTP 503, `text/html`, 258,535 bytes (its fonts are
+inlined as base64). The request never reaches Express, so the app logs nothing and no run is created. Reproduced on
+2026-09-27 at 06:38 UTC with five simultaneous requests to a sleeping instance: the four with `text/html` in `Accept`
+(GET and POST; a browser User-Agent and `Mozilla/4.0 (compatible)`, the one in cron-job.org's published sample
+configuration) got the page within 2 s; the one with `Accept: application/json` was held for 43.5 s and then answered
+by the app (200, 429 bytes). Requests with `Accept: */*` or `application/json` were always held and answered by the
+app.
+
+cron-job.org reads at most 64 KB of a response (headers plus body) and records anything larger as
+`Failed (output too large)`.
+
+## cron-job.org jobs (Phase 6)
+
+| Job | Request | Headers | Schedule (UTC) |
+|---|---|---|---|
+| PricePulse scrape | `POST /api/scrape/run` | `Authorization: Bearer <CRON_SECRET>`, `Accept: application/json` | `0 * * * *` |
+| PricePulse wake | `GET /api/health` | `Accept: application/json` | `50,55 * * * *` |
+
+- `Accept: application/json` keeps Render from answering with the loading page.
+- At :50 the service has normally been idle since the :00 call and is asleep. A held request starts the instance
+  even if the caller gives up (sample C3), so the :55 call and the :00 scrape should find it running. When a cold start
+  takes longer than 30 s, cron-job.org records the :50 call as a timeout; the :55 success keeps the wake job from
+  failing more than 25 times in a row, after which cron-job.org disables a job.
+- cron-job.org's calls arrive 20–85 s after the scheduled minute. A late call still finds its slot due; the 5-minute
+  tolerance only matters for a call that arrives early.
+
+History (UTC):
+
+- 2026-09-26 20:01 to 2026-09-27 06:01, without the `Accept` header: every call that met a sleeping or starting
+  instance failed with "output too large". No run was created between 21:01 and 06:44, so the 22:00, 00:00, 02:00,
+  04:00 and 06:00 slots were missed.
+- In between, with the instance awake: after the scrape job's method and `Authorization` header were corrected,
+  cron-job.org's calls created run 6 (20:40, the 3 options due since 20:00) and run 16 (21:01, nothing due).
+- 2026-09-27 06:44, with `Accept: application/json`: a cron-job.org test run created run 17, which scraped all 10
+  options (7 success, 3 retried). The 07:00 call created run 18 at 07:01:19 (nothing due; next slot 08:00).
+
+## Tracked in production
+
+10 options, every 120 minutes, all added through `POST /api/tracked` on 2026-09-26: 2179/o2, 2852/o2, 2331/o3,
+then one product per remaining store category (the lowest ID in each), with options o1–o4 mixed: 2001/o2, 2025/o1,
+2065/o3, 2073/o4, 2041/o3, 2033/o2, 2057/o1. A `force` run over all 10 (run 15, 20:49–20:52 UTC) got a price and
+stock for each (8 success, 2 retried), each checked against the page text, the quote's product and option, and
+the decoy prices.
+
 ## Rules that follow from these measurements
 
 - **Memory is constrained (512 MB):** one browser at a time, scrapes run sequentially, every context closed in
   `finally`. The scraper defaults follow this (`src/config.js`).
 - **Slow CPU (0.15):** timeouts are sized for Render, not for a laptop — 60 s for the price to settle,
   120 s per try (`SCRAPER_QUOTE_TIMEOUT_MS`, `SCRAPER_TRY_TIMEOUT_MS`).
-- **Cold start ~52 s:** the scrape trigger must return `202` immediately and scrape in the background; whether a
-  pre-wake ping is needed is decided in Phase 6 against the cron service's measured timeout.
+- **Cold start 14–54 s:** the scrape trigger returns `202` immediately and scrapes in the background; cron-job.org
+  sends `Accept: application/json`, and the wake call at minute 50 starts the instance before minute 55 and 0.
 - **Outbound is IPv4-only:** Supabase must be reached through its IPv4 pooler, not the IPv6-only direct host.
 
 ## Phase 3 scraper in the production image
