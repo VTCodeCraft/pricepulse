@@ -365,6 +365,24 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
         expect((await layoutVersions.latestStructure()).structure_hash).toBe('bbbb');
       });
 
+      it('each option returns to its own interval: hourly, six-hourly and the 120-minute default', async () => {
+        const [hourly, sixHourly, standard] = [await track('o1', new Date()), await track('o2', new Date()), await track('o3', new Date())];
+        await sql.query('update tracked_products set scrape_interval_minutes = 60 where id = $1', [hourly]);
+        await sql.query('update tracked_products set scrape_interval_minutes = 360 where id = $1', [sixHourly]);
+        expect(await runner.runTick({ trigger: 'cron' })).toMatchObject({ due: 3, success: 3 });
+
+        const now = Date.now();
+        const slot = async (id, minutes) => {
+          const next = (await nextScrapeAt(id)).getTime();
+          expect(next % (minutes * 60_000)).toBe(0); // aligned to the interval, counted from 00:00 UTC
+          expect(next).toBeGreaterThan(now);
+          expect(next).toBeLessThanOrEqual(now + minutes * 60_000);
+        };
+        await slot(hourly, 60);
+        await slot(sixHourly, 360);
+        await slot(standard, 120);
+      });
+
       it('scrapes every option of a product in one run and one session, each on its own', async () => {
         const [o1, o2, o3] = [await track('o1', new Date()), await track('o2', new Date()), await track('o3', new Date())];
         scraper.scrapeWithRetry.mockImplementation(async ({ optionId }) => {
