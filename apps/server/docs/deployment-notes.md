@@ -105,6 +105,10 @@ History (UTC):
   cron-job.org's calls created run 6 (20:40, the 3 options due since 20:00) and run 16 (21:01, nothing due).
 - 2026-09-27 06:44, with `Accept: application/json`: a cron-job.org test run created run 17, which scraped all 10
   options (7 success, 3 retried). The 07:00 call created run 18 at 07:01:19 (nothing due; next slot 08:00).
+- 07:50 to 08:00, Render asleep: no call started the instance and no run was created (found at 08:03).
+- 08:06, on an instance woken by a manual check: a cron-job.org test run created run 19. At 08:08 the instance
+  crashed after 2 of 10 options (an unhandled rejection from the cookie-consent handler, AI_LOG 16) and the run was
+  left `running` (AI_LOG 15).
 
 ## Tracked in production
 

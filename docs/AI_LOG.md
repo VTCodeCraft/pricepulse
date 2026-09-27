@@ -19,7 +19,7 @@ without AI trailers; this file is the disclosure.
 | 3 Scraper | Wrote the scraper, parser, page-structure checks, retry policy, fault injection, CLI and tests | Reviewed |
 | 4 Database | Wrote the schema, migrations, scheduler, runner and tests | Asked for one commit per step |
 | 5 API | Wrote the HTTP API, catalogue sync, CSV export and integration tests; verified Render and Supabase | Created the Supabase project, added its CA certificate, enabled Enforce SSL, set `DATABASE_URL` on Render |
-| 6 Schedule | Chose the tracked options, measured Render cold starts, traced the failing cron calls to Render's loading page, checked the cron runs in Supabase, wrote the scheduling notes | Created and configured the two cron-job.org jobs (method, headers, schedules) and ran their test runs; chose to track 10 options |
+| 6 Schedule | Chose the tracked options, measured Render cold starts, traced the failing cron calls to Render's loading page, checked the cron runs in Supabase, fixed the two bugs the first production runs exposed (entries 15 and 16), wrote the scheduling notes | Created and configured the two cron-job.org jobs (method, headers, schedules) and ran their test runs; chose to track 10 options |
 | Structure cleanup | Split `routes.js` and `db.js` and moved the server modules into `routes/`, `middleware/`, `services/`, `scheduler/`, `scraper/`, `db/` and `utils/` without changing behavior; compared recorded API responses before and after | Asked for the cleanup and set the target layout |
 
 ## Mistakes
@@ -107,3 +107,15 @@ without AI trailers; this file is the disclosure.
 - **Evidence:** the job was already set to UTC; a request that reaches the app but gets `401` also creates no run, and once the scrape job's method and `Authorization` header were fixed its calls to an awake instance created runs. The real cause was Render's 258 KB "Application loading" page, served to any request whose `Accept` header includes `text/html` while the instance is asleep. curl sends `Accept: */*`, so the cold-start tests never met that page.
 - **Fix:** reproduced the failure by sending requests with different `Accept` headers to a sleeping instance; both cron-job.org jobs now send `Accept: application/json`, and the wake job runs at minutes 50 and 55.
 - **Lesson:** test with the real client's request, headers included, and read what the client received before naming a cause.
+
+### 15. A run left by a dead process blocked every later trigger (Phase 5 code, found in Phase 6)
+- **Mistake:** the HTTP triggers answered 409 as soon as any run was marked `running`. The cleanup of runs whose heartbeat stopped lived only inside `startTick`, which runs after that check, so a dead run was never cleaned up by an HTTP trigger.
+- **Evidence:** run 19 stayed `running` after its instance crashed at 08:08 UTC on 2026-09-27 (entry 16). A regression test with a run whose heartbeat is 20 minutes old got 409 from `POST /api/scrape/run`.
+- **Fix:** `refuseIfRunning` closes stale runs before it checks; the test covers the cron call and a manual scrape.
+- **Lesson:** every place that checks a lock has to apply the same expiry rule as the place that takes it.
+
+### 16. The cookie-consent handler could crash the whole process (Phase 3 code, found in Phase 6)
+- **Mistake:** the handler registered with `page.addLocatorHandler` could reject. Playwright calls it from an event listener and does not catch its errors, so a rejection is unhandled and Node exits. The scraper's `try/catch` cannot see it.
+- **Evidence:** Render log at 08:08 UTC on 2026-09-27: `locator.click: Target page, context or browser has been closed` on the "Reject cookies" button, `triggerUncaughtException(err, true /* fromPromise */)`, then "Instance failed ... Exited with status 1", which killed run 19. Reproduced with real Playwright by closing the context while the handler waited on the button: exit code 1 with the old handler; with the fixed one the process stays up and the scrape fails as `browser_crash`.
+- **Fix:** the consent handler and the fault-injection route handlers (called the same way) catch their own errors; the scrape's own awaited action still fails and is classified. Tests cover a closed page for both.
+- **Lesson:** a callback that a library invokes from an event listener must not throw; check how a library calls your code before relying on `try/catch` around it.
