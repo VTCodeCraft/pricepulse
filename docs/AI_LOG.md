@@ -1,197 +1,148 @@
-# AI Log
+# AI usage record
 
-How AI tools were used on PricePulse, and every real mistake they made. Entries are added when a mistake is
-found, with evidence. This file feeds the "What AI got wrong" section of the design note.
+## Tools and division of work
 
-## AI usage
+- **Claude Code** (Claude Opus 5.5, desktop app) inspected the store, wrote the code, tests and documentation in
+  this repository under my direction, and ran the commands (tests, deployment checks, git).
+- **I** set the scope and the order of work, reviewed each batch before approving its commits, and did all account
+  and dashboard work:
+  - GitHub repository
+  - Render service and environment variables
+  - Supabase project, CA certificate and Enforce SSL
+  - cron-job.org jobs
+  - Vercel project
+- Commits are made under my GitHub account without AI trailers; this file is the disclosure.
 
-Claude Code (Claude Opus 5.5, desktop app) wrote the code, tests and documentation in this repository under my
-direction, and ran the commands (tests, deployment checks, git). I set the scope and the phase order, reviewed every
-phase before approving its commits, and did the account and dashboard work. Commits are made under my GitHub account
-without AI trailers; this file is the disclosure.
+Each mistake below is one Claude Code made. It was recorded when found, with the evidence and the correction.
 
-| Phase | Claude Code | Me |
-|---|---|---|
-| Planning | Read the assignment; inspected the mock store (HTTP, JS bundle, API probing, throwaway Playwright probes); drafted the architecture and plan | Chose the scope (all bonuses) and the repo conventions |
-| 0 Repo | Scaffolded the pnpm + Turborepo monorepo and the CI workflow | Created the GitHub repository |
-| 1 Fixtures | Captured the fixtures; wrote the fixture tests and store notes | Had the React-internals capture and recon leftovers removed |
-| 2 Render gate | Wrote the Dockerfile and a temporary probe route, measured it on Render, then removed the probe | Created the Render service and its environment variables |
-| 3 Scraper | Wrote the scraper, parser, page-structure checks, retry policy, fault injection, CLI and tests | Reviewed |
-| 4 Database | Wrote the schema, migrations, scheduler, runner and tests | Asked for one commit per step |
-| 5 API | Wrote the HTTP API, catalogue sync, CSV export and integration tests; verified Render and Supabase | Created the Supabase project, added its CA certificate, enabled Enforce SSL, set `DATABASE_URL` on Render |
-| 6 Schedule | Chose the tracked options, measured Render cold starts, traced the failing cron calls to Render's loading page, checked the cron runs in Supabase, fixed the two bugs the first production runs exposed (entries 15 and 16), wrote the scheduling notes | Created and configured the two cron-job.org jobs (method, headers, schedules) and ran their test runs; chose to track 10 options |
-| Structure cleanup | Split `routes.js` and `db.js` and moved the server modules into `routes/`, `middleware/`, `services/`, `scheduler/`, `scraper/`, `db/` and `utils/` without changing behavior; compared recorded API responses before and after | Asked for the cleanup and set the target layout |
-| 7 Frontend (F1) | Set up the TypeScript + MUI app shell: theme tokens, sidebar, header, routes, shared loading/empty/error states, route code-splitting; checked it in the browser at 1440/1024/768/375 px | Set the stack, structure, design direction and batch order |
-| 7 Frontend (F2) | Built the API layer, response types, React Query hooks, the dashboard KPIs and the tracked-products table with refresh and untrack; checked the numbers against Supabase and the flows against the local API | Reviewed; set the rule that no metric may be invented |
-| 7 Frontend (F3) | Built catalogue search, the Track Product dialog (explicit option choice, review, tracking), the product page with per-option tracking state, and their tests; checked them against the production API (read-only) and the local API (changes) | Reviewed; asked that nothing be pre-selected and production data not be changed |
-| 7 Frontend (F4) | Built the price history (summary, chart, time ranges), the Scrape Logs page with filters and the attempt/run drawer, the CSV download, and their tests; checked the figures against production API responses (read-only) and the refresh and failure paths against the local API | Reviewed; set the scope and asked that no figure or error message be invented |
-| 7 Frontend (F5) | Built the Analytics page from existing API data, Settings (appearance, system status from `/health`, read-only scraping values, alerts), the Ctrl/⌘K command palette and shared section components, with tests; checked every analytics figure against values computed separately from the production API (read-only) and the failure paths against the local API | Reviewed; set the scope and ruled out any setting, alert or metric the backend does not support |
-| 7 Frontend (All Products) | Added the paged catalogue endpoint (`GET /api/catalog/products`) with tests, the All Products page reusing the existing tracking dialog and per-option tracked state, moved Tracked Products to `/tracked`, and set up jsdom component tests; checked the flow end to end against the local API and database | Asked for the page, chose the `/products` route and approved the test setup |
-| 7 Tracking several options | Extended `POST /api/tracked` with `optionIds` (options checked first, limit counted for the whole request, one first-scrape run) with API tests, and replaced the dialog's radio list with checkboxes and "Select all untracked"; checked a two-option track end to end against the local API, whose single initial run scraped both | Asked for multi-select and chose the backend batch |
-| 7 Visual redesign | Studied INE, the author's portfolio and the demo store, then rebuilt the theme (Geist, black/white/orange tokens, hairlines instead of cards), an original P mark and favicon, the sidebar, header and shared components, the dashboard (metrics strip, price moves and recent activity from existing queries), All Products as a hairline grid, the product, analytics, logs and settings pages, a phone list for tracked products, and a View Transitions theme reveal; checked every route at six widths against the production API (read-only) | Asked for the redesign, set the brand direction and references, and reviewed the result |
+## Mistakes and corrections
 
-| 8 Bonuses | Added price-drop and back-in-stock alerts in the runner, a page-structure fingerprint with change alerts (migration 003), one browser session per product in a run, the alert list, structure status and interval selector in the frontend, and the CI/CD workflows, each with tests; checked the structure fingerprint and a three-option shared session against the live store, and the pages against the production API (read-only) | Set the scope and rules (real data only, no fake events, no competing deploys) |
-
-## Mistakes
-
-### 1. Loaded the price in a hidden browser tab (store inspection)
-- **Mistake:** tried to unlock and load a price in Claude Code's built-in browser pane while the pane was hidden.
-- **Evidence:** `document.visibilityState` was `hidden`; the panel stayed "Price locked" with the button disabled even though trusted `mousemove` events reached it.
-- **Fix:** ran the same steps in a real Playwright page; the price loaded.
-- **Lesson:** the scraper always drives its own foreground/headless Playwright page, never a background tab.
+### 1. Loaded a price in a hidden browser tab (store inspection)
+- **Mistake:** tried to unlock and load a price in the built-in browser pane while the pane was hidden.
+- **Found:** `document.visibilityState` was `hidden`; the panel stayed "Price locked" although `mousemove` events reached it.
+- **Fix:** ran the same steps in a real Playwright page. The scraper always drives its own Playwright page.
 
 ### 2. Clicked an option by screenshot coordinates (store inspection)
 - **Mistake:** clicked "64 GB" using coordinates read from a screenshot.
-- **Evidence:** the screenshot was 800 px wide but the page viewport was 692 CSS px (devicePixelRatio 1.375); afterwards `aria-pressed` was still true on the store's random default "128 GB".
-- **Fix:** clicked through the element's accessibility reference; `aria-pressed` moved to "64 GB".
-- **Lesson:** select options with role/label locators and check `aria-pressed="true"` before asking for a price.
+- **Found:** the screenshot was 800 px wide but the viewport 692 CSS px; `aria-pressed` stayed on the store's random default "128 GB".
+- **Fix:** options are selected by role/label locator and checked with `aria-pressed="true"` before asking for a price.
 
-### 3. Read stale React state as ground truth (Phase 1 probe)
-- **Mistake:** the capture probe read the store's decoded quote from React internals and picked the stale copy of the component.
-- **Evidence:** the first check on each product recorded `phase: "loading"` while the panel was already `offer-ready`.
-- **Fix:** corrected the probe for the recon cross-check only; it then matched the DOM in 24 of 24 checks. Fixtures and tests no longer contain or depend on any React-internal data.
-- **Lesson:** ground truth is the DOM after explicit waits plus the quote network response.
+### 3. Read stale React state as ground truth (fixture capture)
+- **Mistake:** the capture probe read the decoded quote from React internals and picked a stale copy of the component.
+- **Found:** the first check per product recorded `phase: "loading"` while the panel was already `offer-ready`.
+- **Fix:** ground truth is the DOM after explicit waits plus the quote network response. Fixtures and tests contain no React-internal data.
 
-### 4. Secret guard too broad, then silently weakened (Phase 1 export)
-- **Mistake:** the fixture export guard first matched the word "cookie" (rejecting the consent dialog's UI text), and the `sed` edit meant to fix it stripped the regex backslashes.
-- **Evidence:** export error `secret-like content in consent-dialog`; the edited guard read `/bearers|…|"pass"s*:|R0VUfC/i`, which no longer matches `Bearer <token>`.
-- **Fix:** rewrote it in an editor as `/bearer\s|authorization|set-cookie|"pass"\s*:|R0VUfC/i` and added the same scan to `apps/server/test/fixtures.test.js`.
-- **Lesson:** re-read security checks after every edit; keep the scan in the test suite.
+### 4. Secret guard too broad, then silently weakened (fixture export)
+- **Mistake:** the export's secret guard matched the word "cookie" (the consent dialog's text); the `sed` edit meant to fix it stripped the regex backslashes.
+- **Found:** export error `secret-like content in consent-dialog`; the edited regex no longer matched `Bearer <token>`.
+- **Fix:** rewrote it as `/bearer\s|authorization|set-cookie|"pass"\s*:|R0VUfC/i` and added the same scan to `apps/server/test/fixtures.test.js`.
 
-### 5. Compared displayed text with raw HTML (Phase 1 test)
-- **Mistake:** the fixture test expected the displayed price text to appear verbatim in the saved `outerHTML`; the first fix then put an invisible U+00A0 character into the test source.
-- **Evidence:** the test failed on the correct `Rs. 1,393.00` fixture because `outerHTML` writes U+00A0 as `&nbsp;`; `od -c` showed bytes `302 240` in the source.
-- **Fix:** decode `&nbsp;` before comparing, written as `String.fromCharCode(0xa0)`.
-- **Lesson:** the price parser must treat U+00A0 as a space and work on text content, not serialized HTML.
+### 5. Invisible characters typed into source, twice (fixture test, probe)
+- **Mistake:** a fixture test compared displayed text with raw `outerHTML`, and its first fix put a literal U+00A0 into the test. Later the probe's price regex was written with literal U+00A0 and U+200B.
+- **Found:** the test failed on the correct `Rs. 1,393.00` fixture (`outerHTML` writes `&nbsp;`); `od -c` and a code-point scan showed the raw bytes.
+- **Fix:** decode `&nbsp;` before comparing; use `String.fromCharCode(0xa0)`, a named `ZERO_WIDTH_SPACE` constant and `\s`. Re-scanned to zero.
 
-### 6. Created and pushed the repo on the wrong GitHub account (Phase 0)
-- **Mistake:** created the GitHub repo with the `gh` CLI without checking which account it was logged into; it was my company account (`Vishesh-Gudz`), not my personal one.
-- **Evidence:** a later plain `git push` failed with `Permission to Vishesh-Gudz/pricepulse.git denied to VTCodeCraft`, which showed two different accounts were in use.
-- **Fix:** created `VTCodeCraft/pricepulse`, pointed `origin` at it, and pushed the same history there.
-- **Lesson:** confirm the target account/owner before any action that publishes code.
+### 6. Created and pushed the repository on the wrong GitHub account (setup)
+- **Mistake:** created the repo with the `gh` CLI without checking the logged-in account; it was my company account, not my personal one.
+- **Found:** a later `git push` failed with `Permission to Vishesh-Gudz/pricepulse.git denied to VTCodeCraft`.
+- **Fix:** created `VTCodeCraft/pricepulse`, pointed `origin` at it and pushed the same history.
 
-### 7. Invisible characters in a regex, again (Phase 2 probe)
-- **Mistake:** the probe's price parser was written with a literal U+00A0 and U+200B inside a regex character class, repeating mistake 5.
-- **Evidence:** a code-point scan of `src/debug/probe.js` found 1 NBSP and 1 zero-width space; `od -c` showed the raw bytes in the regex.
-- **Fix:** replaced them with a named `ZERO_WIDTH_SPACE = String.fromCharCode(0x200b)` constant and `\s` (which already covers U+00A0); re-scanned to 0.
-- **Lesson:** never type invisible characters into source; use named constants and scan new files for them.
+### 7. Test harness sent a malformed secret header (Render probe)
+- **Mistake:** the harness read the probe secret with `grep DEBUG_PROBE_SECRET .env`, which also matched a comment line.
+- **Found:** all 9 first probes returned `HTTP 400` in 0.02 s; the "secret" was 116 characters instead of 32.
+- **Fix:** match only `^DEBUG_PROBE_SECRET=`; the rerun passed 9/9. The probe route was removed after the measurement.
 
-### 8. Test harness sent a malformed secret header (Phase 2 gate run)
-- **Mistake:** the script that called the local probe read the secret with `grep DEBUG_PROBE_SECRET .env`, which also matched a comment line, so the header contained a newline.
-- **Evidence:** all 9 first-run probes returned empty bodies; a verbose retry showed `HTTP 400` in 0.02 s and a 116-character "secret" instead of 32.
-- **Fix:** match only `^DEBUG_PROBE_SECRET=` and take everything after the first `=`; the rerun passed 9/9.
-- **Lesson:** check a harness's inputs before trusting its results; an instant 400 means the request never reached the code under test.
+### 8. Structure check rejected a normal loading state (scraper)
+- **Mistake:** `checkDomContract` required a price button in every panel state.
+- **Found:** the test on the real `state-retrying-injected` fixture failed: while retrying, the panel shows a spinner and no button.
+- **Fix:** the button is required only in the locked, ready and failed states.
 
-### 9. Page-structure check rejected a normal loading state (Phase 3)
-- **Mistake:** `checkDomContract` required a price button inside the panel in every state.
-- **Evidence:** the test on the real `state-retrying-injected` fixture failed: while the store is retrying, the panel shows a spinner and has no button. In production this would have reported `layout_changed` mid-retry.
-- **Fix:** require the button only in the locked, ready and failed states.
-- **Lesson:** check structural rules against every captured state, not only the happy path.
+### 9. Browser launch failures were unreadable and mislabelled (scraper)
+- **Mistake:** a failed Chromium launch surfaced as `unexpected` with Playwright's full call log in every log line.
+- **Found:** the first headed run on Windows printed three pages of launch arguments for `spawn UNKNOWN`.
+- **Fix:** `launchBrowser` throws `browser_launch_failed`; all Playwright errors are cut to their first line.
 
-### 10. Browser launch failures were unreadable and mislabelled (Phase 3)
-- **Mistake:** a failed Chromium launch surfaced as `unexpected` with Playwright's full multi-line call log in every log line.
-- **Evidence:** the first headed run on Windows printed three pages of launch arguments for `spawn UNKNOWN`.
-- **Fix:** `launchBrowser` throws `browser_launch_failed` with the first line only; all Playwright errors are cut to their first line.
-- **Lesson:** error messages are part of the product: one line, a clear code.
+### 10. A failed run could leave an attempt "in progress" forever (runner)
+- **Mistake:** the first runner draft marked a failed run `failed` but left its unfinished attempt without an outcome; the reaper only looks at runs still `running`.
+- **Found:** reviewing the runner's error path against the reaper query before the first live run.
+- **Fix:** `failUnfinishedAttempts(runIds)` (now in `scrape-attempts.repository.js`), used by the reaper and the runner's failure path.
 
-### 11. A failed run could leave an attempt "in progress" forever (Phase 4)
-- **Mistake:** the first runner draft marked a run `failed` when the database or browser failed mid-run, but left that run's unfinished attempt with no outcome. The stale-run reaper only looks at runs still marked `running`, so that attempt would never have been closed.
-- **Evidence:** found while reviewing the runner's error path against the reaper query (`where status = 'running'`) before the first live run.
-- **Fix:** a shared `failUnfinishedAttempts(runIds)` in `db.js`, used by both the reaper and the runner's failure path; unfinished attempts become `failed` / `interrupted` with no price.
-- **Lesson:** every exit path of a run must leave each attempt with a final, honest outcome.
+### 11. Search could never load the catalogue (API)
+- **Mistake:** `products.catalog_synced_at` defaulted to `now()`, and search treated "any products" as "catalogue loaded"; tracking inserts products, so the sync never started.
+- **Found:** a live smoke test returned `catalog.count: 3` (the tracked products) and no results for "drum".
+- **Fix:** migration `002_catalog_synced_at_nullable.sql`; only products seen by a full sync count.
 
-### 12. Search could never load the catalogue (Phase 5)
-- **Mistake:** the Phase 4 schema gave `products.catalog_synced_at` a default of `now()`, and the Phase 5 search treated "no products" as "catalogue not loaded". Tracking a product inserts it into `products`, so the catalogue looked loaded and the automatic sync never started.
-- **Evidence:** a live smoke test returned `catalog.count: 3` and no results for "drum"; the 3 rows were the tracked products.
-- **Fix:** migration `002_catalog_synced_at_nullable.sql` makes the column NULL unless a full catalogue sync saw the product; `catalogStatus` counts only synced rows.
-- **Lesson:** a column that records an event should stay empty until that event happens; defaults can make "never happened" look like "happened now".
+### 12. SQL parameter typed as integer by a literal (API)
+- **Mistake:** `coalesce($5, 5)` let PostgreSQL infer `$5` as an integer.
+- **Found:** a live `POST /api/tracked` with `priceDropThresholdPct: 7.5` returned 500 (`invalid input syntax for type integer`).
+- **Fix:** `coalesce($5::numeric, 5)`; the API test tracks with a fractional threshold.
 
-### 13. SQL parameter typed as integer by a literal (Phase 5)
-- **Mistake:** `coalesce($5, 5)` in the insert for tracked options let PostgreSQL infer `$5` as an integer from the literal `5`.
-- **Evidence:** a live `POST /api/tracked` with `priceDropThresholdPct: 7.5` returned 500; the log showed `invalid input syntax for type integer: "7.5"`.
-- **Fix:** `coalesce($5::numeric, 5)`; the API test now tracks with a fractional threshold.
-- **Lesson:** cast parameters explicitly when a literal sits next to them; test with realistic values, not only round numbers.
+### 13. Diagnosed failing cron calls by guessing (schedule)
+- **Mistake:** concluded from curl measurements that cold starts fit cron-job.org's 30 s limit, then guessed in turn at the time zone, "requests never reach the app" and a bot challenge when calls failed with "output too large".
+- **Found:** reproducing with different `Accept` headers against a sleeping instance: Render serves a 258 KB loading page to requests that accept `text/html`. curl's `*/*` never met it.
+- **Fix:** both cron jobs send `Accept: application/json`; the wake job runs at minutes 50 and 55.
 
-### 14. Diagnosed the failing cron calls by guessing (Phase 6)
-- **Mistake:** the AI measured Render cold starts with curl and concluded that a ~14 s cold start fits cron-job.org's 30 s limit. When the scheduled calls then failed with "output too large", it guessed at causes in turn: the job's time zone, "the requests never reach the app, awake or asleep" (because no run appeared), and a bot or challenge page aimed at cron-job.org's servers.
-- **Evidence:** the job was already set to UTC; a request that reaches the app but gets `401` also creates no run, and once the scrape job's method and `Authorization` header were fixed its calls to an awake instance created runs. The real cause was Render's 258 KB "Application loading" page, served to any request whose `Accept` header includes `text/html` while the instance is asleep. curl sends `Accept: */*`, so the cold-start tests never met that page.
-- **Fix:** reproduced the failure by sending requests with different `Accept` headers to a sleeping instance; both cron-job.org jobs now send `Accept: application/json`, and the wake job runs at minutes 50 and 55.
-- **Lesson:** test with the real client's request, headers included, and read what the client received before naming a cause.
+### 14. A dead run blocked every later trigger (API, found in production)
+- **Mistake:** HTTP triggers answered 409 whenever a run was `running`; stale-run cleanup ran only after that check.
+- **Found:** run 19 stayed `running` after its instance crashed (entry 15); a regression test with a 20-minute-old heartbeat got 409.
+- **Fix:** `refuseIfRunning` closes stale runs before checking; tests cover the cron call and a manual scrape.
 
-### 15. A run left by a dead process blocked every later trigger (Phase 5 code, found in Phase 6)
-- **Mistake:** the HTTP triggers answered 409 as soon as any run was marked `running`. The cleanup of runs whose heartbeat stopped lived only inside `startTick`, which runs after that check, so a dead run was never cleaned up by an HTTP trigger.
-- **Evidence:** run 19 stayed `running` after its instance crashed at 08:08 UTC on 2026-09-27 (entry 16). A regression test with a run whose heartbeat is 20 minutes old got 409 from `POST /api/scrape/run`.
-- **Fix:** `refuseIfRunning` closes stale runs before it checks; the test covers the cron call and a manual scrape.
-- **Lesson:** every place that checks a lock has to apply the same expiry rule as the place that takes it.
+### 15. The consent handler could crash the process (scraper, found in production)
+- **Mistake:** the `page.addLocatorHandler` callback could reject; Playwright calls it from an event listener, so the rejection was unhandled and Node exited.
+- **Found:** Render log: `locator.click: Target page, context or browser has been closed`, `triggerUncaughtException`, "Exited with status 1". Reproduced locally by closing the context mid-click.
+- **Fix:** the consent handler and fault-injection route handlers catch their own errors; the scrape's awaited action still fails and is classified. Tests cover a closed page.
 
-### 16. The cookie-consent handler could crash the whole process (Phase 3 code, found in Phase 6)
-- **Mistake:** the handler registered with `page.addLocatorHandler` could reject. Playwright calls it from an event listener and does not catch its errors, so a rejection is unhandled and Node exits. The scraper's `try/catch` cannot see it.
-- **Evidence:** Render log at 08:08 UTC on 2026-09-27: `locator.click: Target page, context or browser has been closed` on the "Reject cookies" button, `triggerUncaughtException(err, true /* fromPromise */)`, then "Instance failed ... Exited with status 1", which killed run 19. Reproduced with real Playwright by closing the context while the handler waited on the button: exit code 1 with the old handler; with the fixed one the process stays up and the scrape fails as `browser_crash`.
-- **Fix:** the consent handler and the fault-injection route handlers (called the same way) catch their own errors; the scrape's own awaited action still fails and is classified. Tests cover a closed page for both.
-- **Lesson:** a callback that a library invokes from an event listener must not throw; check how a library calls your code before relying on `try/catch` around it.
+### 16. The first layout ignored the tablet requirement (frontend)
+- **Mistake:** switched to the mobile drawer below 900 px, although the brief asked for a collapsible sidebar on tablets.
+- **Found:** the browser check at 768 px showed only the menu button.
+- **Fix:** collapsible sidebar from 900 px, icon-only sidebar at 600–899 px, drawer below 600 px.
 
-### 17. The first shell ignored the tablet requirement (Phase 7, F1)
-- **Mistake:** the first layout switched to the mobile drawer below 900 px, although the brief asked for a collapsible sidebar on tablets and a drawer only on mobile.
-- **Evidence:** at 768 px the browser check showed the menu button and no sidebar.
-- **Fix:** three widths now: from 900 px a sidebar the user can collapse; 600–899 px an icon-only sidebar; below 600 px the drawer. Re-checked at 768 and 375 px.
-- **Lesson:** check each breakpoint against the brief, not only that the layout works.
+### 17. A dashboard figure taken from counters that can be wrong (frontend)
+- **Mistake:** KPIs summed run counters, which a crashed run never writes: 39 successes and 0 failures in 24 h.
+- **Found:** cross-checking Supabase: abandoned run 19 had 2 successful and 1 interrupted attempt outside its counters; the true figures were 41 and 1.
+- **Fix:** KPIs count outcomes from the attempt log, the same table as history and CSV. The counters themselves are still not recounted (known gap).
 
-### 18. A dashboard figure taken from counters that can be wrong (Phase 7, F2)
-- **Mistake:** the first KPI version summed each run's success/retried/failed counters. A run cut off by a crash never writes them, so the dashboard showed 39 successful scrapes and 0 failures for the last 24 hours.
-- **Evidence:** cross-checking against Supabase: run 19 (abandoned when its instance crashed) has 2 successful attempts and 1 failed (`interrupted`) that its counters do not include. The true figures were 41 and 1.
-- **Fix:** the KPIs count outcomes from each tracked option's attempt log, the same table the history and CSV use. The backend gap stays open: the stale-run cleanup does not recount an abandoned run's counters.
-- **Lesson:** check a derived number against the source of truth before showing it.
+### 18. An animated number that showed 0 (frontend)
+- **Mistake:** the KPI count-up started at 0 and relied on animation frames.
+- **Found:** in a background tab all four cards read 0 while the API had returned 10 products.
+- **Fix:** the real value renders at once; easing only happens between values.
 
-### 19. An animated number that showed 0 (Phase 7, F2)
-- **Mistake:** the KPI count-up started every number at 0 and relied on animation frames to reach the real value.
-- **Evidence:** with the page in a background tab (no animation frames), all four cards read 0 while the API had returned 10 tracked products.
-- **Fix:** the number renders the real value at once and only eases between values when the data changes.
-- **Lesson:** decoration must never change what a data display says, even for a moment.
+### 19. Cached data hidden behind an error (frontend)
+- **Mistake:** the product page's option card checked `isError` before its data; after a failed background refresh React Query keeps the data and reports the error.
+- **Found:** with the local API stopped, a focus refetch failed and the card showed an error while the sections below still used the same cached data.
+- **Fix:** on the product page an error is shown only when there is no data. Still open: the tracked-products table and the KPI strip show their error instead of the cached data after a failed refresh.
 
-### 20. The product page hid cached data behind an error (Phase 7, F3 code, found in F4)
-- **Mistake:** the Selected option card checked `isError` before using its data. After a failed background refresh of the tracked list, React Query keeps the last data but also reports an error, so the card showed "Unable to load the tracking state" while the rest of the page still used that data. The "store did not answer" warning had the same flaw.
-- **Evidence:** with the local API stopped, a window-focus refetch of `GET /api/tracked` failed; the card showed the error while the F4 sections below it, which appear only for a tracked option, were still rendered from that same cached list.
-- **Fix:** the card and the warning show an error only when there is no data; the F4 sections follow the same rule. The dashboard and tracked table (F2) still hide their whole section on such a failure; left unchanged in this batch.
-- **Lesson:** a failed refresh is not missing data; decide what to show from the data first and the error second.
-
-### 21. The log showed partial results while still loading (Phase 7, F4)
-- **Mistake:** the Scrape Logs page appeared as soon as the first options' logs arrived. Opened from a product page, it read "0 of 5 attempts" until that option's log arrived a moment later.
-- **Evidence:** the browser check of `/logs?tracked=3` against production read "0 of 5 attempts" while the other options' logs were still arriving; the option has 7 of the 52 attempts.
+### 20. Partial results shown while still loading (frontend)
+- **Mistake:** Scrape Logs rendered as soon as the first options' logs arrived.
+- **Found:** `/logs?tracked=3` read "0 of 5 attempts" until that option's log arrived.
 - **Fix:** the skeleton stays until every option's log has loaded or failed.
-- **Lesson:** do not show a count, or "nothing matches", before the data behind it is complete.
 
-### 22. A test started a download without asking (Phase 7, F5)
-- **Mistake:** while testing the command palette in the in-app browser, the AI pressed ↓ ↑ ↑ Enter expecting to land on "Scrape Logs". With two results the arrows wrapped to "Export CSV", which fetched the production CSV and handed the browser a file to save, without the user being asked.
-- **Evidence:** the page toast "Scrape history exported · pricepulse-scrape-history-2026-09-27T11-51-24-331Z.csv". The request was a read-only GET; the file did not appear in the user's Downloads folder.
-- **Fix:** the page's download handling was intercepted for the rest of the checks, and the palette's navigation was re-tested by typing a single-result query.
-- **Lesson:** before exercising a list that contains an action with side effects, block that effect or make the target unambiguous.
+### 21. A test started a download without asking (frontend)
+- **Mistake:** while testing the command palette, arrow keys wrapped to "Export CSV" and Enter fetched the production CSV.
+- **Found:** the toast "Scrape history exported · pricepulse-scrape-history-…csv". It was a read-only GET, and no file was saved.
+- **Fix:** download handling was intercepted for the remaining checks; navigation was re-tested with a single-result query.
 
-### 23. Two failure paths that never recovered (Phase 7, F5)
-- **Mistake:** the Scraping settings showed loading placeholders forever when the tracked options failed to load, and the Analytics page's "Try again" refetched only the first failed query, so one click after the API came back still showed the error.
-- **Evidence:** with the local API stopped, the Scraping card kept three skeletons after the request had failed; after restarting the API, one "Try again" on Analytics left "Unable to load analytics" on screen.
-- **Fix:** the Scraping card shows its own error with a retry; "Try again" refetches every query that has no data. Both re-checked against the stopped and restarted API.
-- **Lesson:** test each loading state against a failure, and a retry against more than one failed request.
+### 22. Two failure paths that never recovered (frontend)
+- **Mistake:** Settings → Scraping showed skeletons forever when its query failed; Analytics' "Try again" refetched only the first failed query.
+- **Found:** with the local API stopped and restarted.
+- **Fix:** Scraping shows its own error and retry; "Try again" refetches every query without data.
 
-### 24. A build config that only type-checked on the AI's machine (Phase 7, F5)
-- **Mistake:** `vite.config.ts` read the app version with `node:fs` and the commit with `process.env`. The frontend's type check found Node's types only because a stray `@types/node` sits in the user's home folder, which TypeScript reaches by walking up parent directories; every local check passed.
-- **Evidence:** GitHub Actions run 36318312388 failed on `cf08aed` with "Cannot find name 'process'" and "Cannot find name 'node:fs'". A clean clone outside the home folder, installed with the frozen lockfile, reproduced both errors.
-- **Fix:** the config imports `package.json` instead of reading it, and the commit comes from `VITE_VERCEL_GIT_COMMIT_SHA`, which Vercel exposes to Vite builds; no Node API or new dependency. The clean clone then passed `pnpm lint`, `pnpm test` and `pnpm build`.
-- **Lesson:** reproduce CI in a clean checkout outside the development machine's folders before calling a push verified.
+### 23. A build config that only type-checked on the development machine (frontend)
+- **Mistake:** `vite.config.ts` used `node:fs` and `process.env`; Node's types came only from a stray `@types/node` in a parent folder.
+- **Found:** GitHub Actions run 36318312388 failed with "Cannot find name 'process'"; a clean clone outside the home folder reproduced it.
+- **Fix:** import `package.json` directly and read the commit from `VITE_VERCEL_GIT_COMMIT_SHA`; the clean clone then passed.
 
-### 25. A workflow pushed unchecked, then a guessed fix (Phase 8, bonuses)
-- **Mistake:** the new actionlint job was pushed without running actionlint first. It failed, its log needs a signed-in GitHub account, and the first "fix" was a guess (an unused loop variable). Making the output visible then needed two more rounds, because the annotation template used `{{"\n"}}` although actionlint expands `\n` in `-format` itself.
-- **Evidence:** CI runs 36330211343 and 36330439081 failed in the `workflows` job; run 36330579608 annotated "unterminated quoted string"; run 36330697278 finally showed the real finding, shellcheck SC2016 on the step's own single-quoted template. Run 36330808885 passed.
-- **Fix:** actionlint runs from its pinned download script and writes findings, and any fatal error, as annotations that the API returns without admin rights; SC2016 is disabled on that one line with a reason.
-- **Lesson:** make a failure readable before changing code to fix it, and run a new check locally when possible.
+### 24. A workflow pushed unchecked, then a guessed fix (CI/CD)
+- **Mistake:** the actionlint job was pushed without running actionlint. When it failed (logs need a signed-in account), the first fix was a guess. The annotation template then used `{{"\n"}}`, although actionlint expands `\n` itself.
+- **Found:** runs 36330211343 and 36330439081 failed; 36330579608 annotated "unterminated quoted string"; 36330697278 showed the real finding, SC2016 on the step's own template.
+- **Fix:** actionlint runs from its pinned script and reports findings and fatal errors as annotations; SC2016 is disabled on that line with a reason. Run 36330808885 passed.
 
-### 26. A doc that contradicted what had just been checked (Phase 8, bonuses)
-- **Mistake:** `docs/deployment.md` told the reader to create `apps/frontend/vercel.json`, right after `ls` had shown that the file exists (it holds the SPA rewrite).
-- **Evidence:** commit `c26f5d2`; `ls apps/frontend/vercel.json` printed the path.
-- **Fix:** the doc now says to add the `git.deploymentEnabled` key to the existing file.
-- **Lesson:** read command output for what it says, not for what was expected.
+### 25. A doc that contradicted a check just made (CI/CD)
+- **Mistake:** `docs/deployment.md` said to create `apps/frontend/vercel.json` right after `ls` had shown it exists.
+- **Found:** reviewing the doc against the `ls` output.
+- **Fix:** the doc says to add the key to the existing file.
 
-### 27. A test that would fail near every hour (Phase 8, bonuses)
-- **Mistake:** the per-interval runner test first ended by asserting that a second tick finds nothing due. With the 5-minute scheduler tolerance, an hourly option whose next slot is less than 5 minutes away is due, so the test would fail in the last minutes of every hour.
-- **Evidence:** `isDue` adds `SCHEDULER_TOLERANCE_MINUTES` to the current time; the test's next slot is the next full hour.
-- **Fix:** removed the assertion before committing; the existing "an overdue option runs once" test covers repeated ticks.
-- **Lesson:** a time-based assertion needs the tolerance and boundaries in mind, or a fixed clock.
+### 26. A test that would fail near every hour (scheduler)
+- **Mistake:** a runner test asserted that a second tick finds nothing due, ignoring the 5-minute scheduler tolerance.
+- **Found:** reviewing `isDue` before committing: an hourly option within 5 minutes of its slot is due.
+- **Fix:** removed the assertion; the "overdue option runs once" test covers repeated ticks.
