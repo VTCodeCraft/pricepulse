@@ -56,5 +56,11 @@ jobs:
       # Official download script, pinned version. Findings are written as annotations, so they show on the commit.
       - name: Check workflow syntax and expressions (actionlint)
         run: |
-          bash <(curl --fail --silent --show-error --location https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
-          ./actionlint -format '{{range $err := .}}::error file={{$err.Filepath}},line={{$err.Line}},col={{$err.Column}}::{{$err.Message}}{{"\n"}}{{end}}'
+          curl --fail --silent --show-error --location -o download-actionlint.bash https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash
+          bash download-actionlint.bash 1.7.7 > download.txt 2>&1 || { echo "::error::actionlint download failed: $(tr '\n' ' ' < download.txt | cut -c1-900)"; exit 1; }
+          status=0
+          ./actionlint -format '{{range $err := .}}::error file={{$err.Filepath}},line={{$err.Line}},col={{$err.Column}}::{{$err.Message}}{{"\n"}}{{end}}' > findings.txt 2>&1 || status=$?
+          cat findings.txt
+          # A fatal error (exit 3) prints plain text rather than findings: surface it as one annotation.
+          if [ "$status" -ne 0 ] && ! grep -q '^::error' findings.txt; then echo "::error::actionlint exit $status: $(tr '\n' ' ' < findings.txt | cut -c1-900)"; fi
+          exit "$status"
