@@ -9,12 +9,17 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
-        // Libraries change far less often than the app, so they get their own long-cached chunks.
+        // The libraries every page needs get their own long-cached chunks. Everything else (the data grid, charts)
+        // stays with the pages that use it, so it only loads when one of them does.
         codeSplitting: {
           groups: [
             { name: 'react', test: inPackages('react', 'react-dom', 'react-router', 'react-router-dom', 'scheduler') },
-            { name: 'mui', test: inPackages('@mui', '@emotion') },
-            { name: 'vendor', test: /\/node_modules\// },
+            {
+              name: 'mui',
+              test: inPackages('@mui/material', '@mui/system', '@mui/styled-engine', '@mui/utils', '@mui/private-theming', '@mui/icons-material', '@emotion'),
+            },
+            // Only the pages with tables import it, so this chunk is still loaded on demand.
+            { name: 'data-grid', test: inPackages('@mui/x-data-grid', '@mui/x-internals', '@mui/x-virtualizer') },
           ],
         },
       },
