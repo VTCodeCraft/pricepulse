@@ -1,4 +1,4 @@
-import type { TrackedProduct } from '../../types/product';
+import type { TrackRequest, TrackResponse, TrackedProduct } from '../../types/product';
 import type { ScrapeAttempt, ScrapeStarted } from '../../types/scrape';
 import { api } from './client';
 
@@ -11,6 +11,12 @@ export async function listTracked(): Promise<TrackedProduct[]> {
 export async function listAttempts(id: number, limit: number): Promise<ScrapeAttempt[]> {
   const { data } = await api.get<{ attempts: ScrapeAttempt[] }>(`/tracked/${id}/attempts`, { params: { limit } });
   return data.attempts;
+}
+
+// Checks the option against the store, then starts tracking it. 422 `tracking_limit_reached` / `option_not_found`.
+export async function track(request: TrackRequest): Promise<TrackResponse> {
+  const { data } = await api.post<TrackResponse>('/tracked', request);
+  return data;
 }
 
 // Untracking keeps the history; tracking the same option again re-activates it.

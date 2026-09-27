@@ -3,4 +3,6 @@
 export const queryKeys = {
   tracked: ['tracked'] as const,
   attempts: (trackedId: number) => ['tracked', trackedId, 'attempts'] as const,
+  catalogSearch: (query: string) => ['catalog', 'search', query] as const,
+  product: (storeProductId: number) => ['catalog', 'product', storeProductId] as const,
 };

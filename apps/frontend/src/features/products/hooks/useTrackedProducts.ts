@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ApiError } from '../../../lib/api/client';
 import { getRun } from '../../../lib/api/runs';
-import { listTracked, scrapeTracked, untrack } from '../../../lib/api/tracked';
+import { listTracked, scrapeTracked, track, untrack } from '../../../lib/api/tracked';
 import { queryKeys } from '../../../lib/query/keys';
 import { formatPrice } from '../../../lib/utils/format';
 import type { TrackedProduct } from '../../../types/product';
@@ -10,6 +10,24 @@ import type { RunDetail } from '../../../types/scrape';
 
 export function useTrackedProducts() {
   return useQuery({ queryKey: queryKeys.tracked, queryFn: listTracked });
+}
+
+// Tracking a new option also starts its first scrape in the background; the list is refreshed again when that
+// run finishes, so the first price appears without a reload.
+export function useTrackProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: track,
+    onSuccess: ({ initialRun }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tracked });
+      if (initialRun?.status === 'started') {
+        waitForRun(initialRun.runId).then(
+          () => queryClient.invalidateQueries({ queryKey: queryKeys.tracked }),
+          () => {}, // a failed or slow first scrape still shows up in the list on the next refresh
+        );
+      }
+    },
+  });
 }
 
 export function useUntrack() {
