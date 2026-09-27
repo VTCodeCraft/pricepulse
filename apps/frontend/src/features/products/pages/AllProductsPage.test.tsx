@@ -126,22 +126,39 @@ describe('All Products', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Track another option: Halvard Drawing Tablet Prime' }));
     const dialog = await screen.findByRole('dialog');
-    expect(await within(dialog).findByRole('radio', { name: /128 GB/ })).toBeTruthy();
-    expect((within(dialog).getByRole('radio', { name: /64 GB/ }) as HTMLInputElement).disabled).toBe(true);
-    expect(within(dialog).getAllByRole('radio').some(radio => (radio as HTMLInputElement).checked)).toBe(false);
+    expect(await within(dialog).findByRole('checkbox', { name: /128 GB/ })).toBeTruthy();
+    expect((within(dialog).getByRole('checkbox', { name: /64 GB/ }) as HTMLInputElement).disabled).toBe(true);
+    expect(within(dialog).getAllByRole('checkbox').some(box => (box as HTMLInputElement).checked)).toBe(false);
     expect(getProduct).toHaveBeenCalledWith(2331);
   });
 
-  it('tracks the chosen option through the existing flow and updates the card', async () => {
-    vi.mocked(track).mockResolvedValue({ tracked: trackedOption(13, 'o2', '128 GB'), initialRun: { status: 'busy' } });
+  it('selects every untracked option at once and tracks them in one request', async () => {
+    vi.mocked(track).mockResolvedValue({ tracked: [trackedOption(13, 'o2', '128 GB'), trackedOption(14, 'o3', '256 GB')], initialRun: { status: 'busy' } });
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Track another option: Halvard Drawing Tablet Prime' }));
     const dialog = await screen.findByRole('dialog');
-    fireEvent.click(await within(dialog).findByRole('radio', { name: /128 GB/ }));
+    fireEvent.click(await within(dialog).findByRole('checkbox', { name: 'Select all untracked (2)' }));
+    expect(within(dialog).getAllByRole('checkbox', { checked: true }).map(box => box.closest('label')?.textContent)).toEqual([
+      'Select all untracked (2)',
+      '128 GB',
+      '256 GB',
+    ]);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Continue' }));
+    expect(await within(dialog).findByText('128 GB, 256 GB')).toBeTruthy(); // the review lists both
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Start tracking' }));
+    await waitFor(() => expect(vi.mocked(track).mock.calls[0]?.[0]).toEqual({ storeProductId: 2331, optionIds: ['o2', 'o3'] }));
+  });
+
+  it('tracks the chosen option through the existing flow and updates the card', async () => {
+    vi.mocked(track).mockResolvedValue({ tracked: [trackedOption(13, 'o2', '128 GB')], initialRun: { status: 'busy' } });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Track another option: Halvard Drawing Tablet Prime' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(await within(dialog).findByRole('checkbox', { name: /128 GB/ }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Continue' }));
     vi.mocked(listTracked).mockResolvedValue([tracked64, trackedOption(13, 'o2', '128 GB')]);
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Start tracking' }));
-    await waitFor(() => expect(vi.mocked(track).mock.calls[0]?.[0]).toEqual({ storeProductId: 2331, optionId: 'o2' })); // the POST /api/tracked body
+    await waitFor(() => expect(vi.mocked(track).mock.calls[0]?.[0]).toEqual({ storeProductId: 2331, optionIds: ['o2'] })); // the POST /api/tracked body
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()); // closes on success
     expect(await within(card('Halvard Drawing Tablet Prime')).findByText('Tracking 2 options')).toBeTruthy();
   });
@@ -151,7 +168,7 @@ describe('All Products', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Track Product: Halvard Drawing Tablet Arc' }));
     const dialog = await screen.findByRole('dialog');
-    fireEvent.click(await within(dialog).findByRole('radio', { name: /256 GB/ }));
+    fireEvent.click(await within(dialog).findByRole('checkbox', { name: /256 GB/ }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Continue' }));
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Start tracking' }));
     expect(await within(dialog).findByText('At most 12 options can be tracked at once')).toBeTruthy();

@@ -24,7 +24,7 @@ import { useProduct } from '../hooks/useCatalog';
 import { useTrackProduct, useTrackedProducts } from '../hooks/useTrackedProducts';
 import { productPath, trackedOptionsOf } from '../productInfo';
 import { firstScrapeNote, trackFormSchema, type TrackFormValues } from '../trackForm';
-import { OptionSelector } from './OptionSelector';
+import { OptionChecklist } from './OptionChecklist';
 import { ProductSearch } from './ProductSearch';
 
 type Step = 0 | 1 | 2;
@@ -140,18 +140,18 @@ function TrackForm({ product, tracked, step, onStep, onDone }: TrackFormProps) {
   const trackProduct = useTrackProduct();
   const form = useForm<TrackFormValues>({
     resolver: zodResolver(trackFormSchema(product.options, new Set(tracked.keys()))),
-    defaultValues: { storeProductId: product.storeProductId, optionId: '' },
+    defaultValues: { storeProductId: product.storeProductId, optionIds: [] },
   });
-  const optionId = useWatch({ control: form.control, name: 'optionId' });
-  const option = product.options.find(o => o.id === optionId);
+  const optionIds = useWatch({ control: form.control, name: 'optionIds' });
+  const chosen = product.options.filter(o => optionIds.includes(o.id)).map(o => o.label).join(', ');
   const allTracked = product.options.every(o => tracked.has(o.id));
 
   const submit = form.handleSubmit(values =>
     trackProduct.mutate(values, {
       onSuccess: response => {
-        toast.success(`Tracking ${product.name} · ${option?.label}`, {
+        toast.success(`Tracking ${product.name} · ${chosen}`, {
           description: firstScrapeNote(response),
-          action: { label: 'View', onClick: () => navigate(productPath(product.storeProductId, values.optionId)) },
+          action: { label: 'View', onClick: () => navigate(productPath(product.storeProductId, values.optionIds[0])) },
         });
         onDone();
       },
@@ -177,16 +177,15 @@ function TrackForm({ product, tracked, step, onStep, onDone }: TrackFormProps) {
               </Alert>
             )}
             <Controller
-              name="optionId"
+              name="optionIds"
               control={form.control}
               render={({ field, fieldState }) => (
-                <OptionSelector
-                  label={`Choose one ${product.optionAxis.toLowerCase()} to track`}
+                <OptionChecklist
+                  label={`${product.optionAxis}: choose one or more to track`}
                   options={product.options}
                   value={field.value}
                   onChange={field.onChange}
                   tracked={tracked}
-                  disableTracked
                   error={fieldState.error?.message}
                 />
               )}
@@ -194,13 +193,13 @@ function TrackForm({ product, tracked, step, onStep, onDone }: TrackFormProps) {
           </>
         )}
 
-        {step === 2 && option && (
+        {step === 2 && chosen && (
           <Box component="dl" sx={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: 3, rowGap: 1.25, m: 0 }}>
             <Typography component="dt" variant="body2" sx={{ color: 'text.secondary' }}>
               {product.optionAxis}
             </Typography>
             <Typography component="dd" variant="body2" sx={{ m: 0, fontWeight: 600 }}>
-              {option.label}
+              {chosen}
             </Typography>
             <Typography component="dt" variant="body2" sx={{ color: 'text.secondary' }}>
               Store product
@@ -212,7 +211,8 @@ function TrackForm({ product, tracked, step, onStep, onDone }: TrackFormProps) {
               Schedule
             </Typography>
             <Typography component="dd" variant="body2" sx={{ m: 0 }}>
-              Checked every 2 hours. The first price is fetched right after you start tracking.
+              {optionIds.length > 1 ? 'Each option is checked' : 'Checked'} every 2 hours. The first {optionIds.length > 1 ? 'prices are' : 'price is'} fetched
+              right after you start tracking.
             </Typography>
           </Box>
         )}
@@ -232,7 +232,7 @@ function TrackForm({ product, tracked, step, onStep, onDone }: TrackFormProps) {
           <Button
             variant="contained"
             onClick={async () => {
-              if (await form.trigger('optionId')) onStep(2);
+              if (await form.trigger('optionIds')) onStep(2);
             }}
           >
             Continue

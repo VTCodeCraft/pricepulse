@@ -123,7 +123,7 @@ function UntrackedOption({ storeProductId, productName, option }: { storeProduct
         loading={trackProduct.isPending}
         onClick={() =>
           trackProduct.mutate(
-            { storeProductId, optionId: option.id },
+            { storeProductId, optionIds: [option.id] },
             { onSuccess: response => toast.success(`Tracking ${productName} · ${option.label}`, { description: firstScrapeNote(response) }) },
           )
         }

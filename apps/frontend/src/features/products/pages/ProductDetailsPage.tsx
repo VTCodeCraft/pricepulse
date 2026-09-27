@@ -1,3 +1,4 @@
+import AddOutlined from '@mui/icons-material/AddOutlined';
 import OpenInNew from '@mui/icons-material/OpenInNew';
 import SearchOffOutlined from '@mui/icons-material/SearchOffOutlined';
 import TouchAppOutlined from '@mui/icons-material/TouchAppOutlined';
@@ -8,6 +9,7 @@ import Card from '@mui/material/Card';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { useState } from 'react';
 import { Link as RouterLink, useParams, useSearchParams } from 'react-router-dom';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { ErrorState } from '../../../components/common/ErrorState';
@@ -19,6 +21,7 @@ import { OptionSelector } from '../components/OptionSelector';
 import { OptionTrackingPanel } from '../components/OptionTrackingPanel';
 import { PriceHistorySection } from '../components/PriceHistorySection';
 import { ProductInfoCard } from '../components/ProductInfoCard';
+import { TrackProductDialog } from '../components/TrackProductDialog';
 import { useProduct } from '../hooks/useCatalog';
 import { useTrackedProducts } from '../hooks/useTrackedProducts';
 import { productInfo, trackedOptionsOf } from '../productInfo';
@@ -31,6 +34,7 @@ export function ProductDetailsPage() {
   const optionId = params.get('option') ?? '';
   const live = useProduct(storeProductId);
   const tracked = useTrackedProducts();
+  const [tracking, setTracking] = useState(false);
 
   if (storeProductId === null) return <ProductNotFound />;
 
@@ -67,12 +71,19 @@ export function ProductDetailsPage() {
       <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 7fr) minmax(0, 5fr)' }, alignItems: 'start' }}>
         <Stack spacing={3} sx={{ minWidth: 0 }}>
           <Card component="section" aria-label="Options" sx={{ p: 2.5 }}>
-            <Stack direction="row" sx={{ alignItems: 'baseline', justifyContent: 'space-between', mb: 2 }}>
+            <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', mb: 2 }}>
               <Typography variant="h2">Options</Typography>
               {tracked.data && (
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {trackedHere.size} of {info.options.length} tracked
-                </Typography>
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {trackedHere.size} of {info.options.length} tracked
+                  </Typography>
+                  {trackedHere.size < info.options.length && (
+                    <Button size="small" variant="outlined" startIcon={<AddOutlined />} onClick={() => setTracking(true)}>
+                      Track options
+                    </Button>
+                  )}
+                </Stack>
               )}
             </Stack>
             <OptionSelector
@@ -103,6 +114,11 @@ export function ProductDetailsPage() {
 
         <ProductInfoCard info={info} />
       </Box>
+      <TrackProductDialog
+        open={tracking}
+        onClose={() => setTracking(false)}
+        product={{ storeProductId, name: info.name, brand: info.brand, category: info.category, sku: info.sku }}
+      />
 
       {trackedOption && (
         <Stack spacing={3} sx={{ mt: 3 }}>

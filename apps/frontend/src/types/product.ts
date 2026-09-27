@@ -85,11 +85,12 @@ export type Product = {
   reviewSummary: ReviewSummary | null;
 };
 
-export type TrackRequest = { storeProductId: number; optionId: string };
+// POST /api/tracked with one or more options of the same product.
+export type TrackRequest = { storeProductId: number; optionIds: string[] };
 
-// 201 for a new option (its first scrape starts at once, or waits if another run is busy); 200 when an option that
-// was untracked before is tracked again (initialRun is null).
+// 201 when at least one option is new (one first-scrape run for the new ones starts at once, or waits if another run
+// is busy); 200 when every option was tracked before and is tracked again (initialRun is null).
 export type TrackResponse = {
-  tracked: TrackedProduct;
+  tracked: TrackedProduct[];
   initialRun: { status: 'started'; runId: number } | { status: 'busy' } | null;
 };
