@@ -36,6 +36,19 @@ docker run -d --name pricepulse-pg -e POSTGRES_USER=pricepulse -e POSTGRES_PASSW
 docker exec pricepulse-pg createdb -U pricepulse pricepulse_test
 ```
 
+## Schedule
+
+cron-job.org calls `POST /api/scrape/run` with `Authorization: Bearer <CRON_SECRET>` every hour at minute 0 UTC.
+The server owns the schedule: each tracked option has an interval (120 minutes by default) whose slots are aligned to
+UTC (120 minutes: every even UTC hour), and a call scrapes only the options whose slot has arrived. A call that finds
+nothing due still records an empty run, so every trigger is visible in `GET /api/runs`. Calling every hour for a
+2-hour schedule means a missed call delays a scrape by one hour, not two.
+
+A second cron-job.org job calls `GET /api/health` at minutes 50 and 55 to start the free Render instance (asleep
+after 15 idle minutes) before the scrape call. Both jobs send `Accept: application/json`: while the instance is
+asleep, Render answers requests that accept HTML with a 258 KB loading page, which cron-job.org rejects as too
+large. Measurements: `docs/deployment-notes.md`.
+
 ## API
 
 All responses are JSON (except the CSV). Errors are `{ "error": { "code", "message", "details"? } }`.
