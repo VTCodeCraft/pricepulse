@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
 import { Stat } from '../../../components/common/Stat';
 import type { TrackedProduct } from '../../../types/product';
 import { attemptStock } from '../../scraping/scrapeLog';
@@ -13,7 +13,7 @@ export function StockSection({ items }: { items: TrackedProduct[] }) {
   const max = Math.max(1, ...rows.map(item => item.latest?.stock ?? 0));
 
   return (
-    <SectionCard title="Stock availability" description={`Latest scraped stock of the ${items.length} tracked ${items.length === 1 ? 'option' : 'options'}.`}>
+    <Section title="Stock availability" description={`Latest scraped stock of the ${items.length} tracked ${items.length === 1 ? 'option' : 'options'}.`}>
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', mb: 2.5 }}>
         <Stat label="In stock" value={counts.inStock} note={`of ${items.length}`} />
         <Stat label="Out of stock" value={counts.outOfStock} note={`of ${items.length}`} />
@@ -37,6 +37,6 @@ export function StockSection({ items }: { items: TrackedProduct[] }) {
           );
         })}
       </Box>
-    </SectionCard>
+    </Section>
   );
 }

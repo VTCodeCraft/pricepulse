@@ -31,6 +31,7 @@ export function AnalyticsPage() {
 
   const header = (
     <PageHeader
+      eyebrow="Monitor"
       title="Analytics"
       subtitle="Price movement and scraping health across every tracked option, from the recorded scrapes."
       actions={<TimeRangeToggle value={range} onChange={setRange} />}

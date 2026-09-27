@@ -4,6 +4,7 @@ import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatPrice, formatTimestamp } from '../../../lib/utils/format';
+import { fonts, monospace } from '../../../theme/theme';
 import type { PricePoint } from '../../../types/scrape';
 import { timeTicks } from '../priceHistory';
 
@@ -20,13 +21,13 @@ export function PriceHistoryChart({ points, title, description }: PriceHistoryCh
   const last = data[data.length - 1].time;
   const domain = first === last ? [first - HOUR, last + HOUR] : [first, last];
   const { ticks, label } = timeTicks(domain[0], domain[1]);
-  const axis = { stroke: palette.divider, tick: { fill: palette.text.secondary, fontSize: 12 }, tickLine: false };
+  const axis = { stroke: palette.divider, tick: { fill: palette.text.secondary, fontSize: 11, fontFamily: fonts.mono }, tickLine: false };
 
   return (
     <Box sx={{ height: { xs: 240, sm: 300 }, mx: -1 }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }} title={title} desc={description}>
-          <CartesianGrid vertical={false} stroke={palette.divider} strokeDasharray="3 3" />
+          <CartesianGrid vertical={false} stroke={palette.divider} />
           <XAxis dataKey="time" type="number" domain={domain} ticks={ticks} tickFormatter={label} {...axis} />
           <YAxis width="auto" domain={['auto', 'auto']} tickFormatter={price => formatPrice(price)} axisLine={false} {...axis} />
           <Tooltip
@@ -34,11 +35,11 @@ export function PriceHistoryChart({ points, title, description }: PriceHistoryCh
             content={({ active, label }) => {
               const datum = active ? data.find(d => d.time === label) : undefined;
               return datum ? (
-                <Paper variant="outlined" sx={{ px: 1.5, py: 1 }}>
+                <Paper variant="outlined" sx={{ px: 1.5, py: 1, borderRadius: 1 }}>
                   <Typography variant="subtitle2" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                     {formatPrice(datum.price, datum.point.currency)}
                   </Typography>
-                  <Typography variant="caption" component="p" sx={{ color: 'text.secondary' }}>
+                  <Typography component="p" sx={{ ...monospace, fontSize: '0.6875rem', color: 'text.secondary', mt: 0.25 }}>
                     {formatTimestamp(datum.point.observedAt)}
                   </Typography>
                 </Paper>
@@ -51,8 +52,8 @@ export function PriceHistoryChart({ points, title, description }: PriceHistoryCh
             name="Price"
             stroke={palette.primary.main}
             strokeWidth={2}
-            dot={{ r: 3, fill: palette.primary.main, strokeWidth: 0 }}
-            activeDot={{ r: 5 }}
+            dot={{ r: 2.5, fill: palette.primary.main, strokeWidth: 0 }}
+            activeDot={{ r: 5, stroke: palette.background.paper, strokeWidth: 2 }}
             isAnimationActive={false}
           />
         </LineChart>

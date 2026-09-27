@@ -1,4 +1,5 @@
 import Add from '@mui/icons-material/Add';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import { useState } from 'react';
@@ -7,6 +8,8 @@ import { TrackedProductsSection } from '../../products/components/TrackedProduct
 import { TrackProductDialog } from '../../products/components/TrackProductDialog';
 import { ExportCsvButton } from '../../scraping/components/ExportCsvButton';
 import { KpiCards } from '../components/KpiCards';
+import { PriceMovers } from '../components/PriceMovers';
+import { RecentActivity } from '../components/RecentActivity';
 
 export function DashboardPage() {
   const [tracking, setTracking] = useState(false);
@@ -14,8 +17,9 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Price Tracking Overview"
-        subtitle="Monitor product prices, stock availability, and scraping health from one place."
+        eyebrow="PricePulse"
+        title="Price monitoring"
+        subtitle="Prices, stock and scrape health for every tracked option of the INE demo store, from the scheduled runs."
         actions={
           <>
             <ExportCsvButton variant="outlined" />
@@ -25,9 +29,13 @@ export function DashboardPage() {
           </>
         }
       />
-      <Stack spacing={3}>
+      <Stack spacing={5}>
         <KpiCards />
         <TrackedProductsSection onTrack={() => setTracking(true)} />
+        <Box sx={{ display: 'grid', gap: 5, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' } }}>
+          <PriceMovers />
+          <RecentActivity />
+        </Box>
       </Stack>
       <TrackProductDialog open={tracking} onClose={() => setTracking(false)} />
     </>

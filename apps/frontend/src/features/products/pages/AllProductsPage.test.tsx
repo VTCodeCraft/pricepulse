@@ -91,15 +91,16 @@ describe('All Products', () => {
   it('shows the catalogue page the API returned', async () => {
     renderPage();
     expect(await screen.findByText('960 products in the store · page 1 of 40')).toBeTruthy();
-    expect(within(card('Halvard Drawing Tablet Prime')).getByText(/ID 2331 · Halvard · Tablets/)).toBeTruthy();
-    expect(within(card('Halvard Drawing Tablet Prime')).getByText('3 options')).toBeTruthy();
+    expect(within(card('Halvard Drawing Tablet Prime')).getByText('Halvard · ID 2331 · SK-2331-HA')).toBeTruthy();
+    expect(within(card('Halvard Drawing Tablet Prime')).getByText('Tablets')).toBeTruthy();
+    expect(within(card('Halvard Drawing Tablet Prime')).getByText(/· 3 options$/)).toBeTruthy();
     expect(within(card('Halvard Drawing Tablet Arc')).queryByText(/options?$/)).toBeNull(); // count not known yet
     expect(listCatalog).toHaveBeenCalledWith('', 1, 24);
   });
 
   it('shows which options are tracked, per option', async () => {
     renderPage();
-    expect(await within(await screen.findByRole('article', { name: 'Halvard Drawing Tablet Prime' })).findByText('Tracking 64 GB')).toBeTruthy();
+    expect(await within(await screen.findByRole('article', { name: 'Halvard Drawing Tablet Prime' })).findByText(/^Tracking 64 GB/)).toBeTruthy();
     expect(within(card('Halvard Drawing Tablet Prime')).getByRole('button', { name: 'Track another option: Halvard Drawing Tablet Prime' })).toBeTruthy();
     expect(within(card('Halvard Drawing Tablet Arc')).getByText('Not tracked')).toBeTruthy();
     expect(within(card('Halvard Drawing Tablet Arc')).getByRole('button', { name: 'Track Product: Halvard Drawing Tablet Arc' })).toBeTruthy();
@@ -160,7 +161,7 @@ describe('All Products', () => {
     fireEvent.click(await within(dialog).findByRole('button', { name: 'Start tracking' }));
     await waitFor(() => expect(vi.mocked(track).mock.calls[0]?.[0]).toEqual({ storeProductId: 2331, optionIds: ['o2'] })); // the POST /api/tracked body
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()); // closes on success
-    expect(await within(card('Halvard Drawing Tablet Prime')).findByText('Tracking 2 options')).toBeTruthy();
+    expect(await within(card('Halvard Drawing Tablet Prime')).findByText(/^Tracking 2 options/)).toBeTruthy();
   });
 
   it('keeps the dialog open with the API’s message when tracking fails', async () => {

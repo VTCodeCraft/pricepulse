@@ -3,7 +3,7 @@ import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { Link as RouterLink } from 'react-router-dom';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
 import { formatPrice } from '../../../lib/utils/format';
 import { PriceChange } from '../../products/components/PriceChange';
 import { productPath } from '../../products/productInfo';
@@ -57,7 +57,7 @@ const columns: GridColDef<ComparisonRow>[] = [
 
 export function ComparisonSection({ rows, rangeDescription }: { rows: ComparisonRow[]; rangeDescription: string }) {
   return (
-    <SectionCard
+    <Section
       title="Product comparison"
       description={`Every tracked option. Change is the latest scrape against the previous one; attempt counts cover ${rangeDescription}. Select a column header to sort.`}
     >
@@ -67,17 +67,9 @@ export function ComparisonSection({ rows, rangeDescription }: { rows: Comparison
         columns={columns}
         autoHeight
         hideFooter
-        disableColumnMenu
         disableRowSelectionOnClick
         rowHeight={60}
-        columnHeaderHeight={44}
-        sx={{
-          border: 0,
-          '--DataGrid-containerBackground': 'transparent',
-          '& .MuiDataGrid-columnHeaderTitle': { fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' },
-          '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center', lineHeight: 1.43 },
-        }}
       />
-    </SectionCard>
+    </Section>
   );
 }

@@ -4,7 +4,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { ErrorState } from '../../../components/common/ErrorState';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
 import type { TrackedProduct } from '../../../types/product';
 import { useAttemptLog } from '../hooks/useScrapeLog';
 import { ScrapeLogTable } from './ScrapeLogTable';
@@ -14,7 +14,7 @@ export function OptionScrapeLog({ item }: { item: TrackedProduct }) {
   const log = useAttemptLog(item);
 
   return (
-    <SectionCard
+    <Section
       title="Scrape history"
       description={`Every attempt for ${item.optionLabel}, failures included. Select a row for its details.`}
       action={
@@ -32,6 +32,6 @@ export function OptionScrapeLog({ item }: { item: TrackedProduct }) {
       ) : (
         <ScrapeLogTable entries={log.data} label={`Scrape history of ${item.productName} · ${item.optionLabel}`} showOption={false} pageSize={10} />
       )}
-    </SectionCard>
+    </Section>
   );
 }

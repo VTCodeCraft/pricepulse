@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { ErrorState } from '../../../components/common/ErrorState';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
 import { formatDateTime } from '../../../lib/utils/format';
 import { useAlerts } from '../hooks/useSystem';
 
@@ -16,7 +16,7 @@ export function NotificationsSection() {
   const alerts = useAlerts();
 
   return (
-    <SectionCard title="Notifications" description="Alerts recorded by the server.">
+    <Section layout="aside" title="Notifications" description="Alerts recorded by the server.">
       {alerts.isPending ? (
         <LoadingSkeleton variant="table" rows={2} label="Loading alerts" />
       ) : !alerts.data ? (
@@ -55,6 +55,6 @@ export function NotificationsSection() {
           })}
         </Box>
       )}
-    </SectionCard>
+    </Section>
   );
 }

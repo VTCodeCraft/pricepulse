@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { ErrorState } from '../../../components/common/ErrorState';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
 import { Stat } from '../../../components/common/Stat';
 import { formatDateTime, formatPrice, formatRelativeTime, formatSignedPrice } from '../../../lib/utils/format';
 import { timeRange, type TimeRange } from '../../../lib/utils/timeRange';
@@ -33,7 +33,7 @@ export function PriceMovementSection({ items, range, start }: PriceMovementSecti
   const summary = priceSummary(inRange);
 
   return (
-    <SectionCard
+    <Section
       title="Price movement"
       description="Latest scrape against the previous one; lowest, highest and average over the selected range."
       action={
@@ -88,6 +88,6 @@ export function PriceMovementSection({ items, range, start }: PriceMovementSecti
           title={history.data.length === 0 ? 'Price history will appear after the first successful scrape.' : `No successful scrape in ${description}`}
         />
       )}
-    </SectionCard>
+    </Section>
   );
 }

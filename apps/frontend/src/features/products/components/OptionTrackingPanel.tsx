@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Detail, DetailList } from '../../../components/common/DetailList';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { formatDateTime, formatPrice, formatRelativeTime } from '../../../lib/utils/format';
+import { eyebrow } from '../../../theme/theme';
 import { priceChangePct, stockStatus } from '../../../lib/utils/observations';
 import type { ProductOption, TrackedProduct } from '../../../types/product';
 import { useRefreshPrice, useTrackProduct, useUntrack } from '../hooks/useTrackedProducts';
@@ -38,12 +39,17 @@ function TrackedOption({ item }: { item: TrackedProduct }) {
 
   return (
     <>
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 1 }}>
-        <Typography variant="h2">{item.optionLabel}</Typography>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 1 }}>
+        <div>
+          <Typography component="p" sx={{ ...eyebrow, color: 'text.secondary', mb: 0.5 }}>
+            Tracked option
+          </Typography>
+          <Typography variant="h2">{item.optionLabel}</Typography>
+        </div>
         {item.lastAttempt && <StatusBadge status={item.lastAttempt.outcome} />}
       </Stack>
 
-      <Typography component="p" sx={{ fontSize: '2rem', fontWeight: 600, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', mt: 1.5 }}>
+      <Typography component="p" sx={{ fontSize: { xs: '2.25rem', md: '2.75rem' }, fontWeight: 600, letterSpacing: '-0.045em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', mt: 2 }}>
         {item.latest ? formatPrice(item.latest.price, item.latest.currency) : '—'}
       </Typography>
       {!item.latest && (

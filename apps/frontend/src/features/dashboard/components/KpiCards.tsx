@@ -1,17 +1,12 @@
-import type { SvgIconComponent } from '@mui/icons-material';
-import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined';
-import ErrorOutlineOutlined from '@mui/icons-material/ErrorOutlineOutlined';
-import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
-import ShowChartOutlined from '@mui/icons-material/ShowChartOutlined';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion';
 import { useEffect, type ReactNode } from 'react';
 import { formatSignedPercent } from '../../../lib/utils/format';
+import { eyebrow } from '../../../theme/theme';
 import { useTrackedProducts } from '../../products/hooks/useTrackedProducts';
 import { useScrapeCounts } from '../hooks/useScrapeCounts';
 import { averagePriceChange } from '../kpis';
@@ -23,42 +18,42 @@ export function KpiCards() {
   const counts = useScrapeCounts();
   const change = tracked.data && averagePriceChange(tracked.data);
   const productCount = tracked.data && new Set(tracked.data.map(item => item.storeProductId)).size;
-  const windowLabel = counts.data?.partial ? 'Last 24 hours (at least)' : 'Last 24 hours';
+  const windowLabel = counts.data?.partial ? 'Last 24 h (at least)' : 'Last 24 h';
 
   return (
     <Box
       component="section"
       aria-label="Key figures"
-      sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' } }}
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
+        borderTop: 1,
+        borderBottom: 1,
+        borderColor: 'divider',
+        '& > *': { py: { xs: 2.5, md: 3 }, px: { xs: 0, md: 3 } },
+        '& > *:not(:first-of-type)': { borderLeft: { lg: 1 }, borderColor: { lg: 'divider' } },
+        '& > *:first-of-type': { pl: { md: 0 } },
+        '& > *:nth-of-type(odd)': { pr: { xs: 2, lg: 3 } },
+        '& > *:nth-of-type(n+3)': { borderTop: { xs: 1, lg: 0 }, borderTopColor: 'divider' },
+      }}
     >
-      <KpiCard
-        icon={Inventory2Outlined}
-        label="Tracked products"
+      <Kpi
+        label="Tracked options"
         query={tracked}
         value={tracked.data?.length}
         caption={
           tracked.data &&
-          (tracked.data.length === 0
-            ? 'Nothing tracked yet'
-            : `${tracked.data.length === 1 ? 'Option' : 'Options'} across ${productCount} ${productCount === 1 ? 'product' : 'products'}`)
+          (tracked.data.length === 0 ? 'Nothing tracked yet' : `Across ${productCount} ${productCount === 1 ? 'product' : 'products'}`)
         }
       />
-      <KpiCard
-        icon={CheckCircleOutlineOutlined}
+      <Kpi
         label="Successful scrapes"
         query={counts}
         value={counts.data?.successful}
         caption={counts.data && `${windowLabel} · ${counts.data.retried} after a retry`}
       />
-      <KpiCard
-        icon={ErrorOutlineOutlined}
-        label="Failed attempts"
-        query={counts}
-        value={counts.data?.failed}
-        caption={windowLabel}
-      />
-      <KpiCard
-        icon={ShowChartOutlined}
+      <Kpi label="Failed attempts" query={counts} value={counts.data?.failed} caption={windowLabel} tone={counts.data?.failed ? 'error' : undefined} />
+      <Kpi
         label="Average price change"
         query={tracked}
         value={change?.pct}
@@ -72,44 +67,28 @@ export function KpiCards() {
   );
 }
 
-type KpiCardProps = {
-  icon: SvgIconComponent;
+type KpiProps = {
   label: string;
   query: { isPending: boolean; isError: boolean; refetch: () => unknown };
   value: number | undefined;
   format?: (value: number) => string;
   caption: ReactNode;
+  tone?: 'error';
 };
 
-function KpiCard({ icon: Icon, label, query, value, format = formatCount, caption }: KpiCardProps) {
+function Kpi({ label, query, value, format = formatCount, caption, tone }: KpiProps) {
   return (
-    <Card component="article" sx={{ p: 2.5 }}>
-      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-        <Typography variant="body2" component="h2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-          {label}
-        </Typography>
-        <Box
-          sx={theme => ({
-            width: 32,
-            height: 32,
-            borderRadius: 2,
-            display: 'grid',
-            placeItems: 'center',
-            color: 'primary.main',
-            bgcolor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`,
-          })}
-        >
-          <Icon fontSize="small" />
-        </Box>
-      </Stack>
-
+    <Box component="article" sx={{ minWidth: 0 }}>
+      <Typography component="h2" sx={{ ...eyebrow, color: 'text.secondary' }}>
+        {label}
+      </Typography>
       {query.isPending ? (
         <>
-          <Skeleton width="45%" height={36} />
+          <Skeleton width="45%" height={44} />
           <Skeleton width="75%" />
         </>
       ) : query.isError ? (
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 1.5 }}>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Unavailable
           </Typography>
@@ -119,7 +98,18 @@ function KpiCard({ icon: Icon, label, query, value, format = formatCount, captio
         </Stack>
       ) : (
         <>
-          <Typography component="p" sx={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+          <Typography
+            component="p"
+            sx={{
+              fontSize: { xs: '1.75rem', md: '2.25rem' },
+              fontWeight: 600,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.1,
+              mt: 1.25,
+              fontVariantNumeric: 'tabular-nums',
+              color: tone === 'error' ? 'error.main' : 'text.primary',
+            }}
+          >
             {value === undefined ? '—' : <AnimatedNumber value={value} format={format} />}
           </Typography>
           <Typography variant="caption" component="p" sx={{ color: 'text.secondary', mt: 0.75 }}>
@@ -127,7 +117,7 @@ function KpiCard({ icon: Icon, label, query, value, format = formatCount, captio
           </Typography>
         </>
       )}
-    </Card>
+    </Box>
   );
 }
 

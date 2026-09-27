@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
+import { Section } from '../../../components/common/Section';
+import { eyebrow } from '../../../theme/theme';
 import type { ProductInfo } from '../productInfo';
 import { specRows } from '../productInfo';
 
@@ -10,43 +10,35 @@ export function ProductInfoCard({ info }: { info: ProductInfo }) {
   const specs = info.specs ? specRows(info.specs) : [];
 
   return (
-    <Card component="section" aria-label="Product information" sx={{ p: 2.5 }}>
-      <Typography variant="h2" component="h2">
-        About this product
-      </Typography>
-      {info.description && (
-        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.5 }}>
-          {info.description}
-        </Typography>
-      )}
-      {info.reviewSummary && (
-        <Typography variant="body2" sx={{ mt: 1.5 }}>
-          Rated <strong>{info.reviewSummary.avgRating} / 5</strong> in {info.reviewSummary.count}{' '}
-          {info.reviewSummary.count === 1 ? 'review' : 'reviews'} on the store
-        </Typography>
-      )}
-      {specs.length > 0 && (
+    <Section
+      layout="aside"
+      title="About this product"
+      description={
         <>
-          <Divider sx={{ my: 2 }} />
-          <Box component="dl" sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 3fr)', columnGap: 2, rowGap: 1, m: 0 }}>
-            {specs.map(({ label, value }) => (
-              <Box key={label} sx={{ display: 'contents' }}>
-                <Typography component="dt" variant="body2" sx={{ color: 'text.secondary' }}>
-                  {label}
-                </Typography>
-                <Typography component="dd" variant="body2" sx={{ m: 0, overflowWrap: 'anywhere' }}>
-                  {value}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
+          {info.description ?? (specs.length === 0 && !info.reviewSummary ? 'The store gives no further details for this product.' : null)}
+          {info.reviewSummary && (
+            <Typography variant="body2" component="span" sx={{ display: 'block', mt: 1.5, color: 'text.primary' }}>
+              Rated <strong>{info.reviewSummary.avgRating} / 5</strong> in {info.reviewSummary.count}{' '}
+              {info.reviewSummary.count === 1 ? 'review' : 'reviews'} on the store
+            </Typography>
+          )}
         </>
+      }
+    >
+      {specs.length > 0 && (
+        <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))' }, columnGap: 4 }}>
+          {specs.map(({ label, value }) => (
+            <Box key={label} sx={{ py: 1.25, borderBottom: 1, borderColor: 'divider', minWidth: 0 }}>
+              <Typography component="dt" sx={{ ...eyebrow, color: 'text.secondary' }}>
+                {label}
+              </Typography>
+              <Typography component="dd" variant="body2" sx={{ m: 0, mt: 0.5, overflowWrap: 'anywhere' }}>
+                {value}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
       )}
-      {!info.description && !info.reviewSummary && specs.length === 0 && (
-        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.5 }}>
-          The store gives no further details for this product.
-        </Typography>
-      )}
-    </Card>
+    </Section>
   );
 }

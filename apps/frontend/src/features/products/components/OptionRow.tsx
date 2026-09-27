@@ -42,7 +42,7 @@ export function OptionRow({ control, value, label, item, selected, disabled, alr
         pr: 1.5,
         py: 0.25,
         border: 1,
-        borderRadius: 2,
+        borderRadius: 1,
         borderColor: selected ? 'primary.main' : 'divider',
         bgcolor: selected ? `rgba(${theme.vars.palette.primary.mainChannel} / 0.06)` : 'transparent',
         '& .MuiFormControlLabel-label': { flex: 1, minWidth: 0 },

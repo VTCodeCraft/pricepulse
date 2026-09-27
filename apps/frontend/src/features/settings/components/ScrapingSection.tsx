@@ -3,7 +3,7 @@ import Tooltip from '@mui/material/Tooltip';
 import { formatDistanceToNowStrict, isPast } from 'date-fns';
 import { Detail, DetailList } from '../../../components/common/DetailList';
 import { ErrorState } from '../../../components/common/ErrorState';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
 import { formatDateTime, formatRelativeTime } from '../../../lib/utils/format';
 import { useTrackedProducts } from '../../products/hooks/useTrackedProducts';
 import { RUN_STATUS_LABELS, TRIGGER_LABELS } from '../../scraping/scrapeLog';
@@ -19,7 +19,7 @@ export function ScrapingSection() {
   const lastRun = health.data?.lastRun;
 
   return (
-    <SectionCard title="Scraping" description="Read from the server, where the schedule is set. Nothing here changes it.">
+    <Section layout="aside" title="Scraping" description="Read from the server, where the schedule is set. Nothing here changes it.">
       {!tracked.isPending && !tracked.data ? (
         <ErrorState title="Unable to load the scraping settings" message={tracked.error?.message} onRetry={() => tracked.refetch()} />
       ) : (
@@ -55,6 +55,6 @@ export function ScrapingSection() {
           </Detail>
         </DetailList>
       )}
-    </SectionCard>
+    </Section>
   );
 }

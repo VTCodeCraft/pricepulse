@@ -29,7 +29,9 @@ const columns: GridColDef<LogEntry>[] = [
     valueGetter: (_, row) => new Date(attemptTime(row)),
     renderCell: ({ row }) => (
       <Tooltip title={formatTimestamp(attemptTime(row))}>
-        <span>{formatDateTime(attemptTime(row))}</span>
+        <Box component="span" sx={monospace}>
+          {formatDateTime(attemptTime(row))}
+        </Box>
       </Tooltip>
     ),
   },
@@ -45,7 +47,16 @@ const columns: GridColDef<LogEntry>[] = [
     field: 'id',
     headerName: 'Attempt',
     minWidth: 90,
-    renderCell: ({ row }) => twoLines(`#${row.id}`, triesLabel(row.tries)),
+    renderCell: ({ row }) => (
+      <Box sx={{ minWidth: 0 }}>
+        <Typography component="p" sx={{ ...monospace, fontSize: '0.8125rem' }}>
+          #{row.id}
+        </Typography>
+        <Typography variant="caption" noWrap component="p" sx={{ color: 'text.secondary' }}>
+          {triesLabel(row.tries)}
+        </Typography>
+      </Box>
+    ),
   },
   {
     field: 'outcome',
@@ -107,21 +118,12 @@ export function ScrapeLogTable({ entries, label, showOption = true, pageSize = 2
         initialState={{ pagination: { paginationModel: { pageSize } }, sorting: { sortModel: [{ field: 'time', sort: 'desc' }] } }}
         pageSizeOptions={[10, 25, 50, 100]}
         autoHeight
-        disableColumnMenu
         disableRowSelectionOnClick
-        rowHeight={56}
-        columnHeaderHeight={44}
         onRowClick={({ row }) => show(row)}
         onCellKeyDown={({ row }, event) => {
           if (event.key === 'Enter') show(row);
         }}
-        sx={{
-          border: 0,
-          '--DataGrid-containerBackground': 'transparent',
-          '& .MuiDataGrid-columnHeaderTitle': { fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' },
-          '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center', lineHeight: 1.43 },
-          '& .MuiDataGrid-row': { cursor: 'pointer' },
-        }}
+        sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
       />
       <AttemptDrawer entry={selected} open={open} onClose={() => setOpen(false)} />
     </>

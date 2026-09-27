@@ -2,7 +2,7 @@ import FilterAltOffOutlined from '@mui/icons-material/FilterAltOffOutlined';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
+import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
@@ -35,11 +35,12 @@ export function LogsPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Operations"
         title="Scrape Logs"
         subtitle={`Every scrape attempt of every option, failures included. Times are in your time zone (${timeZone}).`}
         actions={<ExportCsvButton />}
       />
-      <Card sx={{ p: 2.5 }}>
+      <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 3 }}>
         {log.tracked.isPending || log.isPending ? (
           <LoadingSkeleton variant="table" label="Loading the scrape log" />
         ) : !log.tracked.data ? (
@@ -87,7 +88,7 @@ export function LogsPage() {
             )}
           </Stack>
         )}
-      </Card>
+      </Box>
     </>
   );
 }

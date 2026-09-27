@@ -59,7 +59,11 @@ export function AllProductsPage() {
 
   return (
     <>
-      <PageHeader title="All Products" subtitle="Every product in the INE demo store. Open one for its details, or pick an option to track." />
+      <PageHeader
+        eyebrow="Catalogue · INE demo store"
+        title="All Products"
+        subtitle="Every product in the store. Open one for its details and history, or choose options to track."
+      />
       <Stack spacing={2.5}>
         <TextField
           label="Search products"
@@ -77,7 +81,7 @@ export function AllProductsPage() {
               ),
             },
           }}
-          sx={{ maxWidth: 560 }}
+          sx={{ maxWidth: 480 }}
         />
 
         {tracked.isError && !tracked.data && (
@@ -132,11 +136,13 @@ export function AllProductsPage() {
                   p: 0,
                   listStyle: 'none',
                   display: 'grid',
-                  gap: 2,
                   gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' },
-                  opacity: catalog.isPlaceholderData ? 0.6 : 1,
-                  '& > li': { display: 'flex', minWidth: 0 },
-                  '& > li > *': { flex: 1 },
+                  borderTop: 1,
+                  borderLeft: 1,
+                  borderColor: 'divider',
+                  opacity: catalog.isPlaceholderData ? 0.55 : 1,
+                  transition: 'opacity 160ms',
+                  '& > li': { minWidth: 0, borderRight: 1, borderBottom: 1, borderColor: 'divider' },
                 }}
               >
                 {data.results.map(product => (

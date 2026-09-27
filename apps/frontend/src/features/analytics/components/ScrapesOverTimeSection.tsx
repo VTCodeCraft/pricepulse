@@ -6,13 +6,15 @@ import Typography from '@mui/material/Typography';
 import { addHours, format } from 'date-fns';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { EmptyState } from '../../../components/common/EmptyState';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
+import { fonts } from '../../../theme/theme';
 import type { AttemptBucket, attemptsOverTime } from '../analytics';
 
+// Ink for the usual case, the accent for retries, red for failures: the eye goes to what needed attention.
 const SERIES = [
-  { key: 'success', name: 'Success', tone: 'success' },
-  { key: 'retried', name: 'Retried', tone: 'warning' },
-  { key: 'failed', name: 'Failed', tone: 'error' },
+  { key: 'success', name: 'Success', color: 'text' },
+  { key: 'retried', name: 'Retried', color: 'accent' },
+  { key: 'failed', name: 'Failed', color: 'error' },
 ] as const;
 
 type ScrapesOverTimeSectionProps = { data: ReturnType<typeof attemptsOverTime>; rangeDescription: string };
@@ -23,11 +25,12 @@ export function ScrapesOverTimeSection({ data: { unit, buckets }, rangeDescripti
   const bucketLabel = (start: number) =>
     unit === 'day' ? format(start, 'EEE d MMM yyyy') : `${format(start, 'd MMM, HH:mm')}–${format(addHours(start, 1), 'HH:mm')}`;
   const total = (bucket: AttemptBucket) => bucket.success + bucket.retried + bucket.failed;
-  const axis = { stroke: palette.divider, tick: { fill: palette.text.secondary, fontSize: 12 }, tickLine: false };
+  const axis = { stroke: palette.divider, tick: { fill: palette.text.secondary, fontSize: 11, fontFamily: fonts.mono }, tickLine: false };
+  const colors = { text: palette.text.primary, accent: palette.primary.main, error: palette.error.main };
   const busiest = buckets.reduce<AttemptBucket | null>((best, bucket) => (best && total(best) >= total(bucket) ? best : bucket), null);
 
   return (
-    <SectionCard title="Scrapes over time" description={`Finished attempts per ${unit} in ${rangeDescription}, by outcome. Times are local.`}>
+    <Section title="Scrapes over time" description={`Finished attempts per ${unit} in ${rangeDescription}, by outcome. Times are local.`}>
       {buckets.length === 0 ? (
         <EmptyState icon={BarChartOutlined} title={`No finished attempts in ${rangeDescription}`} />
       ) : (
@@ -39,7 +42,7 @@ export function ScrapesOverTimeSection({ data: { unit, buckets }, rangeDescripti
               title={`Scrape attempts per ${unit}, ${rangeDescription}`}
               desc={`${buckets.reduce((sum, bucket) => sum + total(bucket), 0)} finished attempts from ${bucketLabel(buckets[0].start)} to ${bucketLabel(buckets[buckets.length - 1].start)}${busiest ? `; busiest ${bucketLabel(busiest.start)} with ${total(busiest)}` : ''}.`}
             >
-              <CartesianGrid vertical={false} stroke={palette.divider} strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} stroke={palette.divider} />
               <XAxis dataKey="start" tickFormatter={tickLabel} minTickGap={20} {...axis} />
               <YAxis allowDecimals={false} width="auto" axisLine={false} {...axis} />
               <Tooltip
@@ -60,14 +63,14 @@ export function ScrapesOverTimeSection({ data: { unit, buckets }, rangeDescripti
                   ) : null;
                 }}
               />
-              <Legend itemSorter={item => SERIES.findIndex(series => series.key === item.dataKey)} iconType="square" iconSize={10} wrapperStyle={{ fontSize: 12, color: palette.text.secondary }} />
+              <Legend itemSorter={item => SERIES.findIndex(series => series.key === item.dataKey)} iconType="square" iconSize={8} wrapperStyle={{ fontSize: 11, fontFamily: fonts.mono, color: palette.text.secondary }} />
               {SERIES.map(series => (
-                <Bar key={series.key} dataKey={series.key} name={series.name} stackId="outcome" fill={palette[series.tone].main} isAnimationActive={false} maxBarSize={28} />
+                <Bar key={series.key} dataKey={series.key} name={series.name} stackId="outcome" fill={colors[series.color]} isAnimationActive={false} maxBarSize={22} />
               ))}
             </BarChart>
           </ResponsiveContainer>
         </Box>
       )}
-    </SectionCard>
+    </Section>
   );
 }

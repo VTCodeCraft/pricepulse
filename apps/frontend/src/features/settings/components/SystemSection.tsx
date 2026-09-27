@@ -4,7 +4,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { formatDistanceStrict } from 'date-fns';
 import { Detail, DetailList } from '../../../components/common/DetailList';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { monospace } from '../../../theme/theme';
 import { useHealth } from '../hooks/useSystem';
@@ -17,7 +17,8 @@ export function SystemSection() {
   const data = health.isError ? undefined : health.data;
 
   return (
-    <SectionCard
+    <Section
+      layout="aside"
       title="System"
       description="The API this app talks to, asked directly."
       action={
@@ -50,6 +51,6 @@ export function SystemSection() {
           )}
         </Detail>
       </DetailList>
-    </SectionCard>
+    </Section>
   );
 }

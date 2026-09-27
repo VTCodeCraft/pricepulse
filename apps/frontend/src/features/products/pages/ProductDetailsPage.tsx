@@ -5,7 +5,6 @@ import TouchAppOutlined from '@mui/icons-material/TouchAppOutlined';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -16,6 +15,7 @@ import { ErrorState } from '../../../components/common/ErrorState';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { ApiError } from '../../../lib/api/client';
+import { monospace } from '../../../theme/theme';
 import { OptionScrapeLog } from '../../scraping/components/OptionScrapeLog';
 import { OptionSelector } from '../components/OptionSelector';
 import { OptionTrackingPanel } from '../components/OptionTrackingPanel';
@@ -49,13 +49,18 @@ export function ProductDetailsPage() {
 
   const option = info.options.find(o => o.id === optionId);
   const trackedOption = option && trackedHere.get(option.id);
-  const subtitle = [info.brand, info.category, info.sku, `Store #${storeProductId}`].filter(Boolean).join(' · ');
+  const identity = [info.category, info.brand].filter(Boolean).join(' · ');
 
   return (
     <>
       <PageHeader
+        eyebrow={identity || 'Product'}
         title={info.name}
-        subtitle={subtitle}
+        subtitle={
+          <Box component="span" sx={{ ...monospace, fontSize: '0.8125rem' }}>
+            {[`ID ${storeProductId}`, info.sku && `SKU ${info.sku}`].filter(Boolean).join(' · ')}
+          </Box>
+        }
         actions={
           <Button variant="outlined" href={info.productUrl} target="_blank" rel="noopener noreferrer" endIcon={<OpenInNew fontSize="small" />}>
             View in store
@@ -68,51 +73,56 @@ export function ProductDetailsPage() {
         </Alert>
       )}
 
-      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 7fr) minmax(0, 5fr)' }, alignItems: 'start' }}>
-        <Stack spacing={3} sx={{ minWidth: 0 }}>
-          <Card component="section" aria-label="Options" sx={{ p: 2.5 }}>
-            <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', mb: 2 }}>
-              <Typography variant="h2">Options</Typography>
-              {tracked.data && (
-                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {trackedHere.size} of {info.options.length} tracked
-                  </Typography>
-                  {trackedHere.size < info.options.length && (
-                    <Button size="small" variant="outlined" startIcon={<AddOutlined />} onClick={() => setTracking(true)}>
-                      Track options
-                    </Button>
-                  )}
-                </Stack>
-              )}
-            </Stack>
-            <OptionSelector
-              label={info.optionAxis ?? 'Option'}
-              options={info.options}
-              value={option ? option.id : ''}
-              onChange={next => setParams({ option: next }, { replace: true })}
-              tracked={trackedHere}
-            />
-          </Card>
-
-          <Card component="section" aria-label="Selected option" sx={{ p: 2.5 }}>
-            {tracked.isPending ? (
-              <LoadingSkeleton variant="table" rows={3} label="Loading tracking state" />
-            ) : !tracked.data ? (
-              <ErrorState title="Unable to load the tracking state" message={tracked.error?.message} onRetry={() => tracked.refetch()} />
-            ) : option ? (
-              <OptionTrackingPanel storeProductId={storeProductId} productName={info.name} option={option} item={trackedOption} />
-            ) : (
-              <EmptyState
-                icon={TouchAppOutlined}
-                title={`Choose a ${(info.optionAxis ?? 'option').toLowerCase()}`}
-                description="Its price, stock and tracking state appear here."
-              />
+      <Box
+        sx={{
+          display: 'grid',
+          gap: { xs: 4, md: 0 },
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 5fr) minmax(0, 7fr)' },
+          borderTop: 1,
+          borderColor: 'divider',
+          pt: 3,
+        }}
+      >
+        <Box component="section" aria-label="Options" sx={{ minWidth: 0, pr: { md: 4 } }}>
+          <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', mb: 2 }}>
+            <Typography variant="h2">Options</Typography>
+            {tracked.data && (
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                <Typography component="span" sx={{ ...monospace, color: 'text.secondary' }}>
+                  {trackedHere.size}/{info.options.length} tracked
+                </Typography>
+                {trackedHere.size < info.options.length && (
+                  <Button size="small" variant="outlined" startIcon={<AddOutlined />} onClick={() => setTracking(true)}>
+                    Track options
+                  </Button>
+                )}
+              </Stack>
             )}
-          </Card>
-        </Stack>
+          </Stack>
+          <OptionSelector
+            label={info.optionAxis ?? 'Option'}
+            options={info.options}
+            value={option ? option.id : ''}
+            onChange={next => setParams({ option: next }, { replace: true })}
+            tracked={trackedHere}
+          />
+        </Box>
 
-        <ProductInfoCard info={info} />
+        <Box component="section" aria-label="Selected option" sx={{ minWidth: 0, borderLeft: { md: 1 }, borderColor: { md: 'divider' }, pl: { md: 4 } }}>
+          {tracked.isPending ? (
+            <LoadingSkeleton variant="table" rows={3} label="Loading tracking state" />
+          ) : !tracked.data ? (
+            <ErrorState title="Unable to load the tracking state" message={tracked.error?.message} onRetry={() => tracked.refetch()} />
+          ) : option ? (
+            <OptionTrackingPanel storeProductId={storeProductId} productName={info.name} option={option} item={trackedOption} />
+          ) : (
+            <EmptyState
+              icon={TouchAppOutlined}
+              title={`Choose a ${(info.optionAxis ?? 'option').toLowerCase()}`}
+              description="Its price, stock and tracking state appear here."
+            />
+          )}
+        </Box>
       </Box>
       <TrackProductDialog
         open={tracking}
@@ -120,12 +130,11 @@ export function ProductDetailsPage() {
         product={{ storeProductId, name: info.name, brand: info.brand, category: info.category, sku: info.sku }}
       />
 
-      {trackedOption && (
-        <Stack spacing={3} sx={{ mt: 3 }}>
-          <PriceHistorySection item={trackedOption} />
-          <OptionScrapeLog item={trackedOption} />
-        </Stack>
-      )}
+      <Stack spacing={5} sx={{ mt: 5 }}>
+        {trackedOption && <PriceHistorySection item={trackedOption} />}
+        {trackedOption && <OptionScrapeLog item={trackedOption} />}
+        <ProductInfoCard info={info} />
+      </Stack>
     </>
   );
 }

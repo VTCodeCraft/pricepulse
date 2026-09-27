@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { ErrorState } from '../../../components/common/ErrorState';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
-import { SectionCard } from '../../../components/common/SectionCard';
+import { Section } from '../../../components/common/Section';
 import { Stat } from '../../../components/common/Stat';
 import { TimeRangeToggle } from '../../../components/common/TimeRangeToggle';
 import { formatDateTime, formatPrice, formatRelativeTime } from '../../../lib/utils/format';
@@ -26,7 +26,7 @@ export function PriceHistorySection({ item }: { item: TrackedProduct }) {
   const history = usePriceHistory(item.id);
 
   return (
-    <SectionCard
+    <Section
       title="Price history"
       description={`${item.optionLabel} · successful and retried scrapes only`}
       action={<TimeRangeToggle value={range} onChange={setRange} />}
@@ -44,7 +44,7 @@ export function PriceHistorySection({ item }: { item: TrackedProduct }) {
       ) : (
         <HistoryView item={item} points={history.data} range={range} start={rangeStart(range, openedAt)} onShowAll={() => setRange('all')} />
       )}
-    </SectionCard>
+    </Section>
   );
 }
 
