@@ -12,4 +12,5 @@ export const queryKeys = {
   product: (storeProductId: number) => ['catalog', 'product', storeProductId] as const,
   health: ['health'] as const,
   alerts: ['alerts'] as const,
+  layout: ['layout'] as const,
 };

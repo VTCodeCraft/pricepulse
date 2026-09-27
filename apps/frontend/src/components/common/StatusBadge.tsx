@@ -9,11 +9,14 @@ import HourglassEmptyOutlined from '@mui/icons-material/HourglassEmptyOutlined';
 import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
 import RemoveShoppingCartOutlined from '@mui/icons-material/RemoveShoppingCartOutlined';
 import SyncOutlined from '@mui/icons-material/SyncOutlined';
+import TrendingDownOutlined from '@mui/icons-material/TrendingDownOutlined';
+import WarningAmberOutlined from '@mui/icons-material/WarningAmberOutlined';
 import Box from '@mui/material/Box';
 
 type Tone = 'success' | 'warning' | 'error' | 'neutral';
 
-// Scrape outcomes (success / retried / failed, or running while unfinished), stock states and API connection states.
+// Scrape outcomes (success / retried / failed, or running while unfinished), stock states, API connection states,
+// alert types and the store page-structure state.
 // Each has a label and an icon, never colour alone.
 const STATUSES = {
   success: { label: 'Success', tone: 'success', icon: CheckCircleOutlineOutlined },
@@ -26,6 +29,10 @@ const STATUSES = {
   connected: { label: 'Connected', tone: 'success', icon: CloudDoneOutlined },
   unavailable: { label: 'Unavailable', tone: 'error', icon: CloudOffOutlined },
   checking: { label: 'Checking', tone: 'neutral', icon: SyncOutlined },
+  priceDrop: { label: 'Price drop', tone: 'success', icon: TrendingDownOutlined },
+  backInStock: { label: 'Back in stock', tone: 'success', icon: Inventory2Outlined },
+  structureChanged: { label: 'Changed', tone: 'warning', icon: WarningAmberOutlined },
+  structureUnchanged: { label: 'Unchanged', tone: 'success', icon: CheckCircleOutlineOutlined },
 } satisfies Record<string, { label: string; tone: Tone; icon: SvgIconComponent }>;
 
 export type BadgeStatus = keyof typeof STATUSES;

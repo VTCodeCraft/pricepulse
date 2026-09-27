@@ -3,7 +3,9 @@ import DeleteOutlineOutlined from '@mui/icons-material/DeleteOutlineOutlined';
 import RefreshOutlined from '@mui/icons-material/RefreshOutlined';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { formatDistanceToNowStrict, isPast } from 'date-fns';
@@ -15,7 +17,8 @@ import { formatDateTime, formatPrice, formatRelativeTime } from '../../../lib/ut
 import { eyebrow } from '../../../theme/theme';
 import { priceChangePct, stockStatus } from '../../../lib/utils/observations';
 import type { ProductOption, TrackedProduct } from '../../../types/product';
-import { useRefreshPrice, useTrackProduct, useUntrack } from '../hooks/useTrackedProducts';
+import { useRefreshPrice, useTrackProduct, useUntrack, useUpdateInterval } from '../hooks/useTrackedProducts';
+import { DEFAULT_INTERVAL, SCRAPE_INTERVALS, intervalLabel } from '../scrapeIntervals';
 import { firstScrapeNote } from '../trackForm';
 import { PriceChange } from './PriceChange';
 import { StopTrackingDialog } from './StopTrackingDialog';
@@ -34,6 +37,7 @@ export function OptionTrackingPanel({ storeProductId, productName, option, item 
 function TrackedOption({ item }: { item: TrackedProduct }) {
   const refresh = useRefreshPrice();
   const untrack = useUntrack();
+  const updateInterval = useUpdateInterval();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const nextScrape = new Date(item.nextScrapeAt);
 
@@ -87,6 +91,24 @@ function TrackedOption({ item }: { item: TrackedProduct }) {
             'Not yet'
           )}
         </Detail>
+        <Detail label="Scrape interval">
+          <TextField
+            select
+            size="small"
+            value={item.scrapeIntervalMinutes}
+            disabled={updateInterval.isPending}
+            onChange={event => updateInterval.mutate({ id: item.id, minutes: Number(event.target.value) })}
+            slotProps={{ htmlInput: { 'aria-label': 'Scrape interval' } }}
+            sx={{ minWidth: 180, my: -0.5 }}
+          >
+            {SCRAPE_INTERVALS.map(minutes => (
+              <MenuItem key={minutes} value={minutes}>
+                {intervalLabel(minutes)}
+                {minutes === DEFAULT_INTERVAL && ' (default)'}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Detail>
         <Detail label="Next scrape">
           <Tooltip title={formatDateTime(item.nextScrapeAt)}>
             <span>{isPast(nextScrape) ? 'Due now' : `In ${formatDistanceToNowStrict(nextScrape)}`}</span>
@@ -121,7 +143,8 @@ function UntrackedOption({ storeProductId, productName, option }: { storeProduct
     <>
       <Typography variant="h2">{option.label}</Typography>
       <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1, mb: 2.5 }}>
-        This option is not tracked. Tracking it records its price and stock every 2 hours, starting now.
+        This option is not tracked. Tracking it records its price and stock every 2 hours, starting now; the interval
+        can be changed here afterwards.
       </Typography>
       <Button
         variant="contained"

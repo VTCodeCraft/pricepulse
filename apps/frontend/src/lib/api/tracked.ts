@@ -31,6 +31,12 @@ export async function untrack(id: number): Promise<void> {
   await api.delete(`/tracked/${id}`);
 }
 
+// Changing the interval re-aligns the next scrape on the server. 400 for an interval outside the allowed list.
+export async function updateTracked(id: number, changes: { scrapeIntervalMinutes: number }): Promise<TrackedProduct> {
+  const { data } = await api.patch<{ tracked: TrackedProduct }>(`/tracked/${id}`, changes);
+  return data.tracked;
+}
+
 // 202: the scrape runs in the background. 409 while another run is going, 429 within the 10-minute cooldown.
 export async function scrapeTracked(id: number): Promise<ScrapeStarted> {
   const { data } = await api.post<ScrapeStarted>(`/tracked/${id}/scrape`);

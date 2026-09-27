@@ -2,14 +2,26 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ApiError } from '../../../lib/api/client';
 import { getRun } from '../../../lib/api/runs';
-import { listTracked, scrapeTracked, track, untrack } from '../../../lib/api/tracked';
+import { listTracked, scrapeTracked, track, untrack, updateTracked } from '../../../lib/api/tracked';
 import { queryKeys } from '../../../lib/query/keys';
 import { formatPrice } from '../../../lib/utils/format';
 import type { TrackedProduct } from '../../../types/product';
 import type { RunDetail } from '../../../types/scrape';
+import { intervalLabel } from '../scrapeIntervals';
 
 export function useTrackedProducts() {
   return useQuery({ queryKey: queryKeys.tracked, queryFn: () => listTracked() });
+}
+
+// The server re-aligns the next scrape to the new interval; the lists are refreshed to show it.
+export function useUpdateInterval() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, minutes }: { id: number; minutes: number }) => updateTracked(id, { scrapeIntervalMinutes: minutes }),
+    onSuccess: tracked => toast.success(`${tracked.optionLabel} is now scraped ${intervalLabel(tracked.scrapeIntervalMinutes).toLowerCase()}`),
+    onError: error => toast.error(error.message),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.tracked }),
+  });
 }
 
 // Tracking a new option also starts its first scrape in the background; the list is refreshed again when that

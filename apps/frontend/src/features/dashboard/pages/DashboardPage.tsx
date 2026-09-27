@@ -9,6 +9,7 @@ import { TrackProductDialog } from '../../products/components/TrackProductDialog
 import { ExportCsvButton } from '../../scraping/components/ExportCsvButton';
 import { KpiCards } from '../components/KpiCards';
 import { PriceMovers } from '../components/PriceMovers';
+import { RecentAlerts } from '../components/RecentAlerts';
 import { RecentActivity } from '../components/RecentActivity';
 
 export function DashboardPage() {
@@ -32,6 +33,7 @@ export function DashboardPage() {
       <Stack spacing={5}>
         <KpiCards />
         <TrackedProductsSection onTrack={() => setTracking(true)} />
+        <RecentAlerts />
         <Box sx={{ display: 'grid', gap: 5, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' } }}>
           <PriceMovers />
           <RecentActivity />
