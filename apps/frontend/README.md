@@ -38,14 +38,19 @@ Root directory `apps/frontend`, framework preset Vite, build command `pnpm build
   and values derived from observations (stock state, price change).
 - `src/types/`: the API's response shapes, taken from `apps/server/src/utils/serializers.js`.
 - `src/features/<area>/`: pages, components and hooks per section. `src/theme/theme.ts`: every colour token.
+- Tests: pure logic in Node; component tests (`*.test.tsx`, jsdom + Testing Library, `src/test/renderWithProviders.tsx`)
+  mock the API modules only.
 
 Each page is loaded as its own chunk. Every page needs the `react`, `query` and `mui` chunks; the `data-grid` chunk
 and the charts load only with the pages that use them, and the command palette on first use.
 
 ## Products
 
-- `/products`: search the store catalogue (`GET /api/catalog/search`, 300 ms debounce, 2–100 characters, every word must
-  appear in the name) above the table of tracked options. A result opens its product page.
+- `/products` (All Products): every product of the demo store, 24 per page from the server
+  (`GET /api/catalog/products?q=&page=`), searchable by name (300 ms debounce; every word must appear). The search and
+  page are kept in the URL. Each card shows the store id, brand, category, SKU, the option count once known, and which
+  options are tracked (from `GET /api/tracked`); Track Product opens the tracking dialog at that product's options.
+- `/tracked` (Tracked Products): catalogue search (`GET /api/catalog/search`) above the table of tracked options.
 - `/products/:storeProductId?option=oN`: one store product, live from the store (`GET /api/catalog/products/:id`), with
   its options and which of them are tracked (from `GET /api/tracked`). If the store does not answer, a tracked product
   falls back to the details saved when it was tracked.
