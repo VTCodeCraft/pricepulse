@@ -20,6 +20,7 @@ without AI trailers; this file is the disclosure.
 | 4 Database | Wrote the schema, migrations, scheduler, runner and tests | Asked for one commit per step |
 | 5 API | Wrote the HTTP API, catalogue sync, CSV export and integration tests; verified Render and Supabase | Created the Supabase project, added its CA certificate, enabled Enforce SSL, set `DATABASE_URL` on Render |
 | 6 Schedule | Chose the tracked options, measured Render cold starts, traced the failing cron calls to Render's loading page, checked the cron runs in Supabase, wrote the scheduling notes | Created and configured the two cron-job.org jobs (method, headers, schedules) and ran their test runs; chose to track 10 options |
+| Structure cleanup | Split `routes.js` and `db.js` and moved the server modules into `routes/`, `middleware/`, `services/`, `scheduler/`, `scraper/`, `db/` and `utils/` without changing behavior; compared recorded API responses before and after | Asked for the cleanup and set the target layout |
 
 ## Mistakes
 
