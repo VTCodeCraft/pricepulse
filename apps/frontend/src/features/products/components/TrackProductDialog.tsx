@@ -30,9 +30,12 @@ import { ProductSearch } from './ProductSearch';
 type Step = 0 | 1 | 2;
 const STEPS = ['Find product', 'Choose option', 'Review'];
 
-export function TrackProductDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [product, setProduct] = useState<CatalogProduct | null>(null);
-  const [step, setStep] = useState<Step>(0);
+type TrackProductDialogProps = { open: boolean; onClose: () => void; product?: CatalogProduct };
+
+// Without `product` the user searches first; with it (All Products) the dialog opens at that product's options.
+export function TrackProductDialog({ open, onClose, product: chosen }: TrackProductDialogProps) {
+  const [product, setProduct] = useState<CatalogProduct | null>(chosen ?? null);
+  const [step, setStep] = useState<Step>(chosen ? 1 : 0);
   const fullScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
   const titleId = useId();
 
@@ -45,7 +48,7 @@ export function TrackProductDialog({ open, onClose }: { open: boolean; onClose: 
       fullScreen={fullScreen}
       aria-labelledby={titleId}
       // Start over only once the dialog has finished closing, so its content does not jump while it fades out.
-      slotProps={{ transition: { onExited: () => { setProduct(null); setStep(0); } } }}
+      slotProps={{ transition: { onExited: () => { setProduct(chosen ?? null); setStep(chosen ? 1 : 0); } } }}
     >
       <DialogTitle id={titleId}>Track a product</DialogTitle>
       {step === 0 || !product ? (

@@ -8,6 +8,7 @@ export const queryKeys = {
   attempts: (trackedId: number, limit: number) => ['tracked', trackedId, 'attempts', limit] as const,
   run: (runId: number) => ['runs', runId] as const,
   catalogSearch: (query: string) => ['catalog', 'search', query] as const,
+  catalogPage: (query: string, page: number) => ['catalog', 'list', query, page] as const,
   product: (storeProductId: number) => ['catalog', 'product', storeProductId] as const,
   health: ['health'] as const,
   alerts: ['alerts'] as const,

@@ -56,6 +56,19 @@ export type CatalogSearch = {
   results: CatalogProduct[];
 };
 
+// A row of GET /api/catalog/products. The option count is known only once the product's details were fetched.
+export type CatalogListItem = CatalogProduct & { optionCount: number | null };
+
+// One page of the whole catalogue, optionally filtered by name; `total` is the number of products that match.
+export type CatalogPage = {
+  query: string;
+  page: number;
+  pageSize: number;
+  total: number;
+  catalog: CatalogSearch['catalog'];
+  results: CatalogListItem[];
+};
+
 // GET /api/catalog/products/:id, live from the store. The store guarantees the name, option axis and at least one
 // option; the other fields are passed through only when the store sends them.
 export type Product = {

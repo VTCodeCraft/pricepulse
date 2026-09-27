@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Product, TrackedProduct } from '../../types/product';
-import { productInfo, specRows, trackedOptionsOf } from './productInfo';
+import { productInfo, specRows, trackAction, trackedOptionsOf } from './productInfo';
 
 const live: Product = {
   storeProductId: 2331,
@@ -62,5 +62,14 @@ describe('specRows', () => {
       { label: 'Colour', value: 'Bone White' },
     ]);
     expect(specRows({ weightGrams: 4869 })[0].value).toBe('4.87 kg');
+  });
+});
+
+describe('trackAction', () => {
+  it('keeps tracking open while an option is still free, since tracking is per option', () => {
+    expect(trackAction(0, null)).toEqual({ label: 'Track Product', disabled: false });
+    expect(trackAction(1, 3)).toEqual({ label: 'Track another option', disabled: false });
+    expect(trackAction(1, null)).toEqual({ label: 'Track another option', disabled: false }); // option count not known yet
+    expect(trackAction(3, 3)).toEqual({ label: 'Tracked', disabled: true });
   });
 });
