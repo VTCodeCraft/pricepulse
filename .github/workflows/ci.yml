@@ -53,7 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # Official download script, pinned version. Findings are written as annotations, so they show on the commit.
       - name: Check workflow syntax and expressions (actionlint)
-        uses: docker://rhysd/actionlint:1.7.7
-        with:
-          args: -color
+        run: |
+          bash <(curl --fail --silent --show-error --location https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint -format '{{range $err := .}}::error file={{$err.Filepath}},line={{$err.Line}},col={{$err.Column}}::{{$err.Message}}{{"\n"}}{{end}}'
