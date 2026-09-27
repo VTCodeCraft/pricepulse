@@ -24,6 +24,7 @@ without AI trailers; this file is the disclosure.
 | 7 Frontend (F1) | Set up the TypeScript + MUI app shell: theme tokens, sidebar, header, routes, shared loading/empty/error states, route code-splitting; checked it in the browser at 1440/1024/768/375 px | Set the stack, structure, design direction and batch order |
 | 7 Frontend (F2) | Built the API layer, response types, React Query hooks, the dashboard KPIs and the tracked-products table with refresh and untrack; checked the numbers against Supabase and the flows against the local API | Reviewed; set the rule that no metric may be invented |
 | 7 Frontend (F3) | Built catalogue search, the Track Product dialog (explicit option choice, review, tracking), the product page with per-option tracking state, and their tests; checked them against the production API (read-only) and the local API (changes) | Reviewed; asked that nothing be pre-selected and production data not be changed |
+| 7 Frontend (F4) | Built the price history (summary, chart, time ranges), the Scrape Logs page with filters and the attempt/run drawer, the CSV download, and their tests; checked the figures against production API responses (read-only) and the refresh and failure paths against the local API | Reviewed; set the scope and asked that no figure or error message be invented |
 
 ## Mistakes
 
@@ -140,3 +141,15 @@ without AI trailers; this file is the disclosure.
 - **Evidence:** with the page in a background tab (no animation frames), all four cards read 0 while the API had returned 10 tracked products.
 - **Fix:** the number renders the real value at once and only eases between values when the data changes.
 - **Lesson:** decoration must never change what a data display says, even for a moment.
+
+### 20. The product page hid cached data behind an error (Phase 7, F3 code, found in F4)
+- **Mistake:** the Selected option card checked `isError` before using its data. After a failed background refresh of the tracked list, React Query keeps the last data but also reports an error, so the card showed "Unable to load the tracking state" while the rest of the page still used that data. The "store did not answer" warning had the same flaw.
+- **Evidence:** with the local API stopped, a window-focus refetch of `GET /api/tracked` failed; the card showed the error while the F4 sections below it, which appear only for a tracked option, were still rendered from that same cached list.
+- **Fix:** the card and the warning show an error only when there is no data; the F4 sections follow the same rule. The dashboard and tracked table (F2) still hide their whole section on such a failure; left unchanged in this batch.
+- **Lesson:** a failed refresh is not missing data; decide what to show from the data first and the error second.
+
+### 21. The log showed partial results while still loading (Phase 7, F4)
+- **Mistake:** the Scrape Logs page appeared as soon as the first options' logs arrived. Opened from a product page, it read "0 of 5 attempts" until that option's log arrived a moment later.
+- **Evidence:** the browser check of `/logs?tracked=3` against production read "0 of 5 attempts" while the other options' logs were still arriving; the option has 7 of the 52 attempts.
+- **Fix:** the skeleton stays until every option's log has loaded or failed.
+- **Lesson:** do not show a count, or "nothing matches", before the data behind it is complete.
