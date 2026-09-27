@@ -29,18 +29,18 @@ Root directory `apps/frontend`, framework preset Vite, build command `pnpm build
 ## Layout
 
 - `src/app/`: providers, router, 404.
-- `src/components/layout/`: sidebar, header, shell. `src/components/common/`: page header, loading, empty and error
-  states, status badge, label/value list, time-range toggle.
+- `src/components/layout/`: sidebar, header, shell, command palette. `src/components/common/`: page header, section
+  card, stat, loading, empty and error states, status badge, label/value list, time-range toggle.
 - `src/lib/api/`: one Axios client (`client.ts`, turns every failure into an `ApiError` with the API's own code) and one
-  module per backend area in use (`tracked.ts`, `runs.ts`, `catalog.ts`, `export.ts`). Components never call Axios;
-  they use the feature hooks.
+  module per backend area in use (`tracked.ts`, `runs.ts`, `catalog.ts`, `export.ts`, `system.ts`). Components never
+  call Axios; they use the feature hooks.
 - `src/lib/query/`: the React Query client and every query key. `src/lib/utils/`: formatting (INR, percentages, times)
   and values derived from observations (stock state, price change).
 - `src/types/`: the API's response shapes, taken from `apps/server/src/utils/serializers.js`.
 - `src/features/<area>/`: pages, components and hooks per section. `src/theme/theme.ts`: every colour token.
 
-Each page is loaded as its own chunk. Every page needs the `react` and `mui` chunks; the `data-grid` chunk loads only
-with the pages that show a table.
+Each page is loaded as its own chunk. Every page needs the `react`, `query` and `mui` chunks; the `data-grid` chunk
+and the charts load only with the pages that use them, and the command palette on first use.
 
 ## Products
 
@@ -77,6 +77,36 @@ with the pages that show a table.
   run never writes its counters.
 - Export CSV downloads `GET /api/export.csv`, which the server generates (every finished attempt). The API does not
   expose `Content-Disposition` to other origins, so the file name follows the server's pattern with the browser's time.
+
+## Analytics
+
+`/analytics` is derived in the browser from data other pages already load; there is no analytics endpoint. Sources: the
+active options (`GET /api/tracked`), every option's scrape log (the same cached `GET /api/tracked/:id/attempts?limit=500`
+queries as Scrape Logs, untracked options included) and, for the selected option only, its price history. One time
+range (24H / 7D / 30D / 90D / All, exact hours back from when the page opened) applies to every section except stock.
+
+- Price movement: latest against previous observation (amount and percentage), and lowest, highest and average over the
+  range, with the history chart shared with the product page.
+- Scrape reliability: successful (success or retried, as on the dashboard), retried, failed and the share of finished
+  attempts that returned a valid price. Outcomes are the backend's; run counters are not used.
+- Scrapes over time: finished attempts per local hour (up to two days of data) or per local day, by outcome, from the
+  first attempt in the range up to now.
+- Stock availability: in stock, out of stock and not yet scraped, from each option's latest observation; the store gives
+  no low-stock signal, so there is none.
+- Product comparison: each option's price, change, attempt counts in the range and stock.
+
+## Settings and command palette
+
+- Appearance (light, dark, system) uses MUI's colour-scheme state, the same one the header toggle uses; the choice is
+  kept in this browser.
+- System asks `GET /api/health`: connected, unavailable or checking; database state; server uptime; the API URL and the
+  app version (from `package.json`, plus the commit on Vercel builds).
+- Scraping shows what the API reports (active options, their intervals, the next scheduled scrape, the last run). The
+  schedule is set on the server; nothing here changes it.
+- Notifications lists `GET /api/alerts`. The server can store alerts but does not create them yet, so there are no alert
+  settings and the list is empty.
+- Ctrl+K (⌘K) or the header's Commands button opens a palette: the pages, Track Product (the existing dialog), toggle
+  theme and Export CSV. It has no "run a full scrape": that endpoint needs the cron secret.
 
 ## Where the dashboard numbers come from
 

@@ -25,6 +25,7 @@ without AI trailers; this file is the disclosure.
 | 7 Frontend (F2) | Built the API layer, response types, React Query hooks, the dashboard KPIs and the tracked-products table with refresh and untrack; checked the numbers against Supabase and the flows against the local API | Reviewed; set the rule that no metric may be invented |
 | 7 Frontend (F3) | Built catalogue search, the Track Product dialog (explicit option choice, review, tracking), the product page with per-option tracking state, and their tests; checked them against the production API (read-only) and the local API (changes) | Reviewed; asked that nothing be pre-selected and production data not be changed |
 | 7 Frontend (F4) | Built the price history (summary, chart, time ranges), the Scrape Logs page with filters and the attempt/run drawer, the CSV download, and their tests; checked the figures against production API responses (read-only) and the refresh and failure paths against the local API | Reviewed; set the scope and asked that no figure or error message be invented |
+| 7 Frontend (F5) | Built the Analytics page from existing API data, Settings (appearance, system status from `/health`, read-only scraping values, alerts), the Ctrl/⌘K command palette and shared section components, with tests; checked every analytics figure against values computed separately from the production API (read-only) and the failure paths against the local API | Reviewed; set the scope and ruled out any setting, alert or metric the backend does not support |
 
 ## Mistakes
 
@@ -153,3 +154,15 @@ without AI trailers; this file is the disclosure.
 - **Evidence:** the browser check of `/logs?tracked=3` against production read "0 of 5 attempts" while the other options' logs were still arriving; the option has 7 of the 52 attempts.
 - **Fix:** the skeleton stays until every option's log has loaded or failed.
 - **Lesson:** do not show a count, or "nothing matches", before the data behind it is complete.
+
+### 22. A test started a download without asking (Phase 7, F5)
+- **Mistake:** while testing the command palette in the in-app browser, the AI pressed ↓ ↑ ↑ Enter expecting to land on "Scrape Logs". With two results the arrows wrapped to "Export CSV", which fetched the production CSV and handed the browser a file to save, without the user being asked.
+- **Evidence:** the page toast "Scrape history exported · pricepulse-scrape-history-2026-09-27T11-51-24-331Z.csv". The request was a read-only GET; the file did not appear in the user's Downloads folder.
+- **Fix:** the page's download handling was intercepted for the rest of the checks, and the palette's navigation was re-tested by typing a single-result query.
+- **Lesson:** before exercising a list that contains an action with side effects, block that effect or make the target unambiguous.
+
+### 23. Two failure paths that never recovered (Phase 7, F5)
+- **Mistake:** the Scraping settings showed loading placeholders forever when the tracked options failed to load, and the Analytics page's "Try again" refetched only the first failed query, so one click after the API came back still showed the error.
+- **Evidence:** with the local API stopped, the Scraping card kept three skeletons after the request had failed; after restarting the API, one "Try again" on Analytics left "Unable to load analytics" on screen.
+- **Fix:** the Scraping card shows its own error with a retry; "Try again" refetches every query that has no data. Both re-checked against the stopped and restarted API.
+- **Lesson:** test each loading state against a failure, and a retry against more than one failed request.
