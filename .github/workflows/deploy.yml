@@ -65,8 +65,6 @@ jobs:
             done
             case "$VERCEL_ORG_ID" in team_*) ;; *) problems="$problems VERCEL_ORG_ID should start with team_ (starts with ${VERCEL_ORG_ID:0:4});" ;; esac
             case "$VERCEL_PROJECT_ID" in prj_*) ;; *) problems="$problems VERCEL_PROJECT_ID should start with prj_ (starts with ${VERCEL_PROJECT_ID:0:4});" ;; esac
-            user=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $VERCEL_TOKEN" https://api.vercel.com/v2/user)
-            [ "$user" = 200 ] || problems="$problems token rejected by Vercel (HTTP $user);"
             project=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_ORG_ID}")
             [ "$project" = 200 ] || problems="$problems project not reachable with this token and team (HTTP $project);"
             if [ -n "$problems" ]; then
