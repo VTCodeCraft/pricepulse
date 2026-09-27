@@ -54,9 +54,10 @@ and the charts load only with the pages that use them, and the command palette o
 - `/products/:storeProductId?option=oN`: one store product, live from the store (`GET /api/catalog/products/:id`), with
   its options and which of them are tracked (from `GET /api/tracked`). If the store does not answer, a tracked product
   falls back to the details saved when it was tracked.
-- Tracking (dialog or product page): the user picks one option explicitly; nothing is pre-selected and an option that is
-  already tracked cannot be picked again. `POST /api/tracked` answers at once and starts the first scrape in the
-  background; the list refreshes again when that run finishes.
+- Tracking (dialog, product page or All Products): the user ticks one or more options explicitly, or "Select all
+  untracked"; nothing is pre-selected and an option that is already tracked cannot be picked again. One
+  `POST /api/tracked` (`optionIds`) answers at once and starts one first-scrape run for the new options; the list
+  refreshes again when that run finishes.
 
 ## Price history
 
