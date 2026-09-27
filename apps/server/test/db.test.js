@@ -310,6 +310,52 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
         expect(results.map(r => r.status).sort()).toEqual(['busy', 'completed']);
       });
 
+      it('alerts on a price drop and a return to stock, comparing validated observations only', async () => {
+        const trackedId = await track('o1', new Date());
+        const observe = (price, stock) => scraper.scrapeWithRetry.mockImplementationOnce(async ({ optionId }) => {
+          const result = scraped(optionId);
+          return { ...result, result: { ...result.result, price, stock } };
+        });
+        const alertRows = () => sql.query('select type, severity, attempt_id, data from alerts order by id').then(r => r.rows);
+
+        observe(100000, 0);
+        await runner.runTick({ trigger: 'cli', force: true }); // first observation: nothing to compare with
+        scraper.scrapeWithRetry.mockResolvedValueOnce({ outcome: 'failed', tries: [{ ok: false }], error: new ScrapeError('timeout', 'slow') });
+        await runner.runTick({ trigger: 'cli', force: true }); // a failed attempt is not an observation
+        expect(await alertRows()).toEqual([]);
+
+        observe(90000, 5);
+        await runner.runTick({ trigger: 'cli', force: true }); // compared with the first run, not the failed one
+        const [, , third] = await attempts.listAttempts(trackedId).then(rows => rows.reverse());
+        expect(await alertRows()).toEqual([
+          expect.objectContaining({ type: 'price_drop', severity: 'warning', attempt_id: third.id, data: expect.objectContaining({ previousPrice: 100000, currentPrice: 90000, change: -10000, changePct: -10, optionId: 'o1' }) }),
+          expect.objectContaining({ type: 'back_in_stock', attempt_id: third.id, data: expect.objectContaining({ previousStock: 0, currentStock: 5 }) }),
+        ]);
+
+        observe(90000, 5);
+        await runner.runTick({ trigger: 'cli', force: true }); // unchanged
+        observe(95000, 7);
+        await runner.runTick({ trigger: 'cli', force: true }); // a rise
+        expect(await alertRows()).toHaveLength(2);
+      });
+
+      it('the same observation never alerts twice', async () => {
+        const trackedId = await track('o1', new Date());
+        const runId = await newRun();
+        const attemptId = await attempts.startAttempt(runId, trackedId);
+        const [tracked] = await trackedProducts.getTrackedByIds([trackedId]);
+        const { recordObservationAlerts } = await import('../src/services/alerts.service.js');
+        const change = {
+          tracked,
+          attemptId,
+          previous: { outcome: 'success', price: '100.00', currency: 'INR', stock: 0 },
+          current: { outcome: 'success', price: 90, currency: 'INR', stock: 3 },
+        };
+        expect(await recordObservationAlerts(change)).toHaveLength(2);
+        expect(await recordObservationAlerts(change)).toHaveLength(0);
+        expect((await sql.query('select count(*)::int as n from alerts')).rows[0].n).toBe(2);
+      });
+
       it('clears a stale run first, then runs', async () => {
         await track('o1', new Date());
         const stale = (await sql.query("insert into scrape_runs (trigger, heartbeat_at) values ('cron', now() - interval '1 hour') returning id")).rows[0].id;

@@ -38,6 +38,17 @@ export async function listAttempts(trackedProductId, limit = 50) {
   return rows;
 }
 
+// The newest validated observation of an option, or undefined. Failed attempts are never an observation.
+export async function latestObservation(trackedProductId) {
+  const { rows } = await query(
+    `select id, outcome, price, currency, stock, finished_at from scrape_attempts
+     where tracked_product_id = $1 and outcome in ('success', 'retried')
+     order by finished_at desc, id desc limit 1`,
+    [trackedProductId],
+  );
+  return rows[0];
+}
+
 // Price/stock history: the most recent `limit` validated observations, oldest first.
 export async function listObservations(trackedProductId, limit) {
   const { rows } = await query(

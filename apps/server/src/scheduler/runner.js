@@ -4,7 +4,7 @@ import os from 'node:os';
 import { config } from '../config.js';
 import { recordLayoutVersion } from '../db/repositories/layout-versions.repository.js';
 import { upsertProduct } from '../db/repositories/products.repository.js';
-import { finishAttempt, failUnfinishedAttempts, startAttempt } from '../db/repositories/scrape-attempts.repository.js';
+import { finishAttempt, failUnfinishedAttempts, latestObservation, startAttempt } from '../db/repositories/scrape-attempts.repository.js';
 import { finishRun, reapStaleRuns, setRunProductsDue, startRun, touchRun } from '../db/repositories/scrape-runs.repository.js';
 import { getTrackedByIds, listActiveTracked, setNextScrapeAt } from '../db/repositories/tracked-products.repository.js';
 import { launchBrowser, scrapeWithRetry } from '../scraper/browser.js';
@@ -12,6 +12,7 @@ import { hashManifest, hashSchema, validateManifest } from '../scraper/layout.js
 import { parsePrice } from '../scraper/parser.js';
 import { ScrapeError, sleep } from '../scraper/retry.js';
 import { getItem, getManifest } from '../scraper/store.js';
+import { recordObservationAlerts } from '../services/alerts.service.js';
 import { isDue, nextSlotAfterRun } from './schedule.js';
 
 // trigger: 'cron' | 'manual' | 'initial' | 'cli'. By default only due options are scraped;
@@ -83,8 +84,15 @@ async function executeRun(run, { trigger, trackedIds, force = false, faultPlan, 
             ? successfulAttempt(scrape, await layoutVersionId(scrape.result.layout.manifestHash, layoutIds))
             : failedAttempt(scrape.error, scrape.tries);
         }
+        // The previous observation is read before this attempt is stored, so it can only be an earlier one.
+        const previous = attempt.outcome === 'failed' ? undefined : await latestObservation(tracked.id);
         await finishAttempt(attemptId, attempt);
         counts[attempt.outcome]++;
+        if (previous) {
+          await recordObservationAlerts({ tracked, previous: observation(previous), current: attempt, attemptId })
+            .then(alerts => alerts.forEach(alert => log(`alert: ${alert.title} (${alert.message})`)))
+            .catch(error => log(`could not record alerts for attempt ${attemptId}: ${error.message}`));
+        }
         log(`${tracked.product_name} / ${tracked.option_label}: ${attempt.outcome}${attempt.price ? ` ${attempt.currency} ${attempt.price}, stock ${attempt.stock}` : ` (${attempt.errorCode})`}`);
 
         // Advance the schedule only when this run served the option's slot, so a manual or CLI run
@@ -132,6 +140,8 @@ function successfulAttempt({ outcome, result, tries }, layoutVersionIdValue) {
     details: { tries, displayed: result.displayed, evidence: result.evidence, timingsMs: result.timingsMs },
   };
 }
+
+const observation = row => ({ outcome: row.outcome, price: row.price, currency: row.currency, stock: row.stock, finishedAt: row.finished_at });
 
 function failedAttempt(error, tries = []) {
   return { outcome: 'failed', tries: tries.length, errorCode: error.code ?? 'unexpected', errorMessage: error.message, details: { tries } };
