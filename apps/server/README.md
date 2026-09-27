@@ -49,6 +49,34 @@ after 15 idle minutes) before the scrape call. Both jobs send `Accept: applicati
 asleep, Render answers requests that accept HTML with a 258 KB loading page, which cron-job.org rejects as too
 large. Measurements: `docs/deployment-notes.md`.
 
+Each option has its own interval: 60, 120 (default), 240, 360, 720 or 1440 minutes, changed with
+`PATCH /api/tracked/:id { "scrapeIntervalMinutes": 360 }` (the next slot is re-aligned to the new interval). Other
+values are refused by the API and by a database constraint. An overdue option runs once and returns to its own
+slots; the run lock keeps runs from overlapping.
+
+A run groups the due options by product. Each product is looked up once, and its options share one browser context
+(cookies, cache, the consent choice) while each option gets its own page load, option check, quote check, attempt row
+and retries; a retry uses a fresh context, and a result is never stored against another option.
+
+## Alerts and page structure
+
+In-app alerts (`GET /api/alerts`), raised by the runner, one per event (the dedupe key is the attempt):
+
+| Type | Raised when | Data |
+|---|---|---|
+| `price_drop` | a validated price is lower than the option's previous validated price, same currency | product, option, both prices, change, change %, previous time; `warning` at or past the option's `price_drop_threshold_pct`, otherwise `info` |
+| `back_in_stock` | the previous validated stock was 0 and the new one is above 0 | product, option, both stock values and states |
+| `structure_changed` | the store's price panel has a different structure than the last one seen | both signatures and the changed parts |
+
+Failed attempts never carry a price or stock, so they never raise an alert and are never the "previous" value.
+
+Page structure: every successful scrape fingerprints the ready price panel (`pageStructure` in `src/scraper/layout.js`):
+the paths from the panel to the price, the stock and the price button, as tag names and stable class names. Manifest
+classes are replaced by their manifest key, generated class names are dropped and element contents are not read, so a
+price change, the stock text, the price format, the fact order or a class rotation leave it unchanged; moving the
+price or stock does not. The fingerprint is stored on the attempt's `layout_versions` row (`structure_hash`,
+`structure`); a change is reported as `changed` by `/api/layout` until its alert is marked read.
+
 ## API
 
 All responses are JSON (except the CSV). Errors are `{ "error": { "code", "message", "details"? } }`.
@@ -72,7 +100,7 @@ Timestamps are ISO 8601 in UTC.
 | POST | `/api/scrape/run` | Cron trigger (Bearer `CRON_SECRET`) → 202 with `runId`, or 409; `{ "force": true }` scrapes every active option |
 | GET | `/api/runs`, `/api/runs/:id` | Run history; one run with its attempts |
 | GET | `/api/alerts[?unread=true]` | Alerts; `POST /api/alerts/:id/read`, `POST /api/alerts/read-all` |
-| GET | `/api/layout` | Store layout versions seen and structure-related alerts |
+| GET | `/api/layout` | Store layout versions seen, structure alerts, and the current page structure (`unknown`, `unchanged` or `changed`) |
 | GET | `/api/export.csv` | Every attempt: `store_product_id, product_name, selected_option, timestamp, price, stock, outcome` |
 
 Scrape triggers answer immediately and the scrape runs in the background, because a run can take minutes on Render

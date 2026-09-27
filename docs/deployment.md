@@ -43,7 +43,7 @@ only logs a notice and the platform's auto-deploy stays in charge, so nothing br
 switch the platform's auto-deploy off so each commit is deployed once, after CI:
 
 - Render: service → Settings → Auto-Deploy → **Off** (the workflow's deploy hook takes over).
-- Vercel: create `apps/frontend/vercel.json` with `{ "git": { "deploymentEnabled": { "main": false } } }`, so pushes to
+- Vercel: add `"git": { "deploymentEnabled": { "main": false } }` to `apps/frontend/vercel.json`, so pushes to
   `main` no longer deploy through the Git integration (preview deployments for other branches keep working).
 
 Do these after the secrets are in place, not before: with auto-deploy off and no secrets, nothing would deploy.

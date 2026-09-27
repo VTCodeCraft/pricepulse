@@ -30,6 +30,8 @@ without AI trailers; this file is the disclosure.
 | 7 Tracking several options | Extended `POST /api/tracked` with `optionIds` (options checked first, limit counted for the whole request, one first-scrape run) with API tests, and replaced the dialog's radio list with checkboxes and "Select all untracked"; checked a two-option track end to end against the local API, whose single initial run scraped both | Asked for multi-select and chose the backend batch |
 | 7 Visual redesign | Studied INE, the author's portfolio and the demo store, then rebuilt the theme (Geist, black/white/orange tokens, hairlines instead of cards), an original P mark and favicon, the sidebar, header and shared components, the dashboard (metrics strip, price moves and recent activity from existing queries), All Products as a hairline grid, the product, analytics, logs and settings pages, a phone list for tracked products, and a View Transitions theme reveal; checked every route at six widths against the production API (read-only) | Asked for the redesign, set the brand direction and references, and reviewed the result |
 
+| 8 Bonuses | Added price-drop and back-in-stock alerts in the runner, a page-structure fingerprint with change alerts (migration 003), one browser session per product in a run, the alert list, structure status and interval selector in the frontend, and the CI/CD workflows, each with tests; checked the structure fingerprint and a three-option shared session against the live store, and the pages against the production API (read-only) | Set the scope and rules (real data only, no fake events, no competing deploys) |
+
 ## Mistakes
 
 ### 1. Loaded the price in a hidden browser tab (store inspection)
@@ -175,3 +177,21 @@ without AI trailers; this file is the disclosure.
 - **Evidence:** GitHub Actions run 36318312388 failed on `cf08aed` with "Cannot find name 'process'" and "Cannot find name 'node:fs'". A clean clone outside the home folder, installed with the frozen lockfile, reproduced both errors.
 - **Fix:** the config imports `package.json` instead of reading it, and the commit comes from `VITE_VERCEL_GIT_COMMIT_SHA`, which Vercel exposes to Vite builds; no Node API or new dependency. The clean clone then passed `pnpm lint`, `pnpm test` and `pnpm build`.
 - **Lesson:** reproduce CI in a clean checkout outside the development machine's folders before calling a push verified.
+
+### 25. A workflow pushed unchecked, then a guessed fix (Phase 8, bonuses)
+- **Mistake:** the new actionlint job was pushed without running actionlint first. It failed, its log needs a signed-in GitHub account, and the first "fix" was a guess (an unused loop variable). Making the output visible then needed two more rounds, because the annotation template used `{{"\n"}}` although actionlint expands `\n` in `-format` itself.
+- **Evidence:** CI runs 36330211343 and 36330439081 failed in the `workflows` job; run 36330579608 annotated "unterminated quoted string"; run 36330697278 finally showed the real finding, shellcheck SC2016 on the step's own single-quoted template. Run 36330808885 passed.
+- **Fix:** actionlint runs from its pinned download script and writes findings, and any fatal error, as annotations that the API returns without admin rights; SC2016 is disabled on that one line with a reason.
+- **Lesson:** make a failure readable before changing code to fix it, and run a new check locally when possible.
+
+### 26. A doc that contradicted what had just been checked (Phase 8, bonuses)
+- **Mistake:** `docs/deployment.md` told the reader to create `apps/frontend/vercel.json`, right after `ls` had shown that the file exists (it holds the SPA rewrite).
+- **Evidence:** commit `c26f5d2`; `ls apps/frontend/vercel.json` printed the path.
+- **Fix:** the doc now says to add the `git.deploymentEnabled` key to the existing file.
+- **Lesson:** read command output for what it says, not for what was expected.
+
+### 27. A test that would fail near every hour (Phase 8, bonuses)
+- **Mistake:** the per-interval runner test first ended by asserting that a second tick finds nothing due. With the 5-minute scheduler tolerance, an hourly option whose next slot is less than 5 minutes away is due, so the test would fail in the last minutes of every hour.
+- **Evidence:** `isDue` adds `SCHEDULER_TOLERANCE_MINUTES` to the current time; the test's next slot is the next full hour.
+- **Fix:** removed the assertion before committing; the existing "an overdue option runs once" test covers repeated ticks.
+- **Lesson:** a time-based assertion needs the tolerance and boundaries in mind, or a fixed clock.

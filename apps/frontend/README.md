@@ -125,10 +125,11 @@ range (24H / 7D / 30D / 90D / All, exact hours back from when the page opened) a
   kept in this browser.
 - System asks `GET /api/health`: connected, unavailable or checking; database state; server uptime; the app version
   (from `package.json`, plus the commit when Vercel provides `VITE_VERCEL_GIT_COMMIT_SHA`).
-- Scraping shows what the API reports (active options, their intervals, the next scheduled scrape, the last run). The
-  schedule is set on the server; nothing here changes it.
-- Notifications lists `GET /api/alerts`. The server can store alerts but does not create them yet, so there are no alert
-  settings and the list is empty.
+- Scraping shows what the API reports (active options, their intervals, the next scheduled scrape, the last run) and
+  the store page structure from `GET /api/layout` (unchanged / changed, when it was checked, the layout revision).
+  An option's interval is changed on its product page (Scrape interval selector, `PATCH /api/tracked/:id`).
+- Alerts lists `GET /api/alerts`: price drops, returns to stock and page-structure changes, with old and new values and
+  a link to the option; "Mark as read" acknowledges them. The dashboard shows the latest price drops and restocks.
 - Ctrl+K (⌘K) or the header's Commands button opens a palette: the pages, Track Product (the existing dialog), toggle
   theme and Export CSV. It has no "run a full scrape": that endpoint needs the cron secret.
 
