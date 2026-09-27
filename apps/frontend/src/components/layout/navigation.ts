@@ -6,13 +6,13 @@ import SettingsOutlined from '@mui/icons-material/SettingsOutlined';
 import SpaceDashboardOutlined from '@mui/icons-material/SpaceDashboardOutlined';
 import StorefrontOutlined from '@mui/icons-material/StorefrontOutlined';
 
-export type NavItem = { to: string; label: string; icon: SvgIconComponent; end?: boolean };
+export type NavItem = { to: string; label: string; icon: SvgIconComponent; group: 'Monitor' | 'System'; end?: boolean };
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: SpaceDashboardOutlined, end: true },
-  { to: '/products', label: 'All Products', icon: StorefrontOutlined },
-  { to: '/tracked', label: 'Tracked Products', icon: Inventory2Outlined },
-  { to: '/analytics', label: 'Analytics', icon: InsightsOutlined },
-  { to: '/logs', label: 'Scrape Logs', icon: ReceiptLongOutlined },
-  { to: '/settings', label: 'Settings', icon: SettingsOutlined },
+  { to: '/', label: 'Dashboard', icon: SpaceDashboardOutlined, group: 'Monitor', end: true },
+  { to: '/tracked', label: 'Tracked Products', icon: Inventory2Outlined, group: 'Monitor' },
+  { to: '/products', label: 'All Products', icon: StorefrontOutlined, group: 'Monitor' },
+  { to: '/analytics', label: 'Analytics', icon: InsightsOutlined, group: 'Monitor' },
+  { to: '/logs', label: 'Scrape Logs', icon: ReceiptLongOutlined, group: 'Monitor' },
+  { to: '/settings', label: 'Settings', icon: SettingsOutlined, group: 'System' },
 ];

@@ -16,6 +16,7 @@ import Typography from '@mui/material/Typography';
 import { lazy, Suspense, useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCsvExport } from '../../features/scraping/hooks/useCsvExport';
+import { monospace } from '../../theme/theme';
 import { useThemeToggle } from '../../theme/useThemeToggle';
 import { matchCommands, moveActive, type PaletteCommand } from './commands';
 import { NAV_ITEMS } from './navigation';
@@ -139,12 +140,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               tabIndex={-1}
               onMouseMove={() => setActive(index)}
               onClick={() => choose(command)}
+              sx={theme => ({ '&.Mui-selected, &.Mui-selected:hover': { bgcolor: 'action.hover', boxShadow: `inset 2px 0 0 ${theme.vars.palette.primary.main}` } })}
             >
               <ListItemIcon sx={{ minWidth: 36 }}>
                 <command.icon fontSize="small" />
               </ListItemIcon>
               <ListItemText primary={command.label} secondary={command.hint} />
-              <Typography variant="caption" sx={{ color: 'text.secondary', ml: 2 }}>
+              <Typography component="span" sx={{ ...monospace, fontSize: '0.6875rem', color: 'text.secondary', ml: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {command.group}
               </Typography>
             </ListItemButton>

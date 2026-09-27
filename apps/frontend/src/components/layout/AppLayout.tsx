@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import { motion } from 'framer-motion';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { motion as tokens } from '../../theme/theme';
 import { LoadingSkeleton } from '../common/LoadingSkeleton';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
@@ -75,9 +76,9 @@ export function AppLayout() {
           component="main"
           id="main-content"
           tabIndex={-1}
-          sx={{ flexGrow: 1, width: '100%', maxWidth: 1440, mx: 'auto', px: { xs: 2, sm: 3, lg: 4 }, py: { xs: 2.5, md: 3.5 }, outline: 'none' }}
+          sx={{ flexGrow: 1, width: '100%', maxWidth: 1360, mx: 'auto', px: { xs: 2, sm: 3, lg: 5 }, pt: { xs: 3, md: 4.5 }, pb: { xs: 5, md: 7 }, outline: 'none' }}
         >
-          <motion.div key={pathname} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
+          <motion.div key={pathname} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: tokens.base, ease: tokens.ease }}>
             <Suspense fallback={<LoadingSkeleton variant="cards" label="Loading page" />}>
               <Outlet />
             </Suspense>
