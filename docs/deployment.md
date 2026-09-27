@@ -34,7 +34,10 @@ passed to steps through `env` and never echoed; GitHub masks them in logs.
 |---|---|
 | `RENDER_DEPLOY_HOOK_URL` | Render → service → Settings → Deploy Hook |
 | `VERCEL_TOKEN` | Vercel → Account Settings → Tokens |
-| `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | `.vercel/project.json` after `vercel link` in `apps/frontend` (not committed) |
+| `VERCEL_ORG_ID` (`team_…`), `VERCEL_PROJECT_ID` (`prj_…`) | `.vercel/project.json` after `vercel link` in `apps/frontend` (not committed) |
+
+The frontend job checks these before deploying (ID prefixes, whitespace, token and project access) and fails with
+the reason, printing only ID prefixes and HTTP status codes.
 
 ## One deployment path per target
 

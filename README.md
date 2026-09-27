@@ -189,7 +189,7 @@ the browser are mocked, so no test touches the live store. CI runs the full suit
 | Database | Supabase PostgreSQL | Session pooler, TLS verified against the committed Supabase CA (`apps/server/certs/`) |
 | Schedule | cron-job.org | Hourly trigger and wake-up calls |
 
-`.github/workflows/deploy.yml` deploys the exact commit CI tested, only after CI passes on `main`. It needs Render
-and Vercel secrets; until they are set, the platforms' own auto-deploy is used. See
-[`docs/deployment.md`](docs/deployment.md). Render and Supabase measurements (memory, cold starts, TLS) are in
+`.github/workflows/deploy.yml` deploys the exact commit CI tested, only after CI passes on `main`: the backend
+through a Render deploy hook, the frontend with the Vercel CLI (Vercel's own Git deploys of `main` are off). The
+credentials are secrets of the GitHub `production` environment. See [`docs/deployment.md`](docs/deployment.md). Render and Supabase measurements (memory, cold starts, TLS) are in
 [`apps/server/docs/deployment-notes.md`](apps/server/docs/deployment-notes.md).

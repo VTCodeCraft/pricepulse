@@ -147,8 +147,6 @@ the dashboard). No email is sent; `email_status` stays `not_configured`.
   - Run counters are not recounted when a crashed run is abandoned; the dashboard counts outcomes from attempts
     instead.
   - `store_app_updated` alerts are defined but never raised.
-  - The GitHub Actions deploy job needs Render and Vercel secrets. Until they are set, the platforms' own
-    auto-deploy is used (`docs/deployment.md`).
 
 ## 8. AI usage
 
