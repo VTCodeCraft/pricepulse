@@ -30,6 +30,7 @@ const STATUSES = {
 
 export type BadgeStatus = keyof typeof STATUSES;
 
+// A small outlined label: icon and text in the state's colour, a faint tint behind. Never colour alone.
 export function StatusBadge({ status }: { status: BadgeStatus }) {
   const { label, tone, icon: Icon } = STATUSES[status];
   return (
@@ -39,18 +40,20 @@ export function StatusBadge({ status }: { status: BadgeStatus }) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 0.5,
-        px: 1,
-        py: 0.25,
-        borderRadius: 1.5,
+        height: 22,
+        px: 0.75,
+        borderRadius: 0.5,
+        border: 1,
         fontSize: '0.75rem',
-        fontWeight: 600,
-        lineHeight: 1.5,
+        fontWeight: 500,
+        lineHeight: 1,
         whiteSpace: 'nowrap',
         color: tone === 'neutral' ? 'text.secondary' : `${tone}.main`,
-        bgcolor: tone === 'neutral' ? 'action.hover' : `rgba(${theme.vars.palette[tone].mainChannel} / 0.12)`,
+        borderColor: tone === 'neutral' ? 'divider' : `rgba(${theme.vars.palette[tone].mainChannel} / 0.35)`,
+        bgcolor: tone === 'neutral' ? 'transparent' : `rgba(${theme.vars.palette[tone].mainChannel} / 0.06)`,
       })}
     >
-      <Icon sx={{ fontSize: 14 }} aria-hidden />
+      <Icon sx={{ fontSize: 13 }} aria-hidden />
       {label}
     </Box>
   );

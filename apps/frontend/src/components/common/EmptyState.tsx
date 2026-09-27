@@ -15,30 +15,31 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, description, icon: Icon = InboxOutlined, action, tone = 'neutral' }: EmptyStateProps) {
   return (
-    <Stack role={tone === 'error' ? 'alert' : undefined} spacing={1.25} sx={{ alignItems: 'center', textAlign: 'center', py: 6, px: 3 }}>
+    <Stack role={tone === 'error' ? 'alert' : undefined} spacing={1} sx={{ alignItems: 'center', textAlign: 'center', py: 6, px: 3 }}>
       <Box
         sx={theme => ({
-          width: 44,
-          height: 44,
-          mb: 0.5,
-          borderRadius: 3,
+          width: 36,
+          height: 36,
+          mb: 0.75,
+          borderRadius: 1,
           display: 'grid',
           placeItems: 'center',
+          border: 1,
+          borderColor: tone === 'error' ? `rgba(${theme.vars.palette.error.mainChannel} / 0.35)` : 'divider',
           color: tone === 'error' ? 'error.main' : 'text.secondary',
-          bgcolor: tone === 'error' ? `rgba(${theme.vars.palette.error.mainChannel} / 0.1)` : 'action.hover',
         })}
       >
-        <Icon fontSize="small" />
+        <Icon sx={{ fontSize: 18 }} />
       </Box>
       <Typography variant="h3" component="p">
         {title}
       </Typography>
       {description && (
-        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 440 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: '46ch', textWrap: 'pretty' }}>
           {description}
         </Typography>
       )}
-      {action && <Box sx={{ pt: 1 }}>{action}</Box>}
+      {action && <Box sx={{ pt: 1.5 }}>{action}</Box>}
     </Stack>
   );
 }
