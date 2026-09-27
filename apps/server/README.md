@@ -58,6 +58,7 @@ Timestamps are ISO 8601 in UTC.
 |---|---|---|
 | GET | `/api/health` | Process up; database status, applied migrations, last run |
 | GET | `/api/catalog/search?q=&limit=` | Partial-name search (every word must match). First call on an empty catalogue starts a sync and answers 503 |
+| GET | `/api/catalog/products?q=&page=&pageSize=` | The whole catalogue a page at a time (optional name filter, same matching as search), with the matching `total`; `optionCount` once a product's details were fetched |
 | POST | `/api/catalog/sync` | Rebuild the catalogue in the background (Bearer `CRON_SECRET`) |
 | GET | `/api/catalog/products/:storeProductId` | Live product details and options from the store |
 | GET | `/api/tracked[?includeInactive=true]` | Tracked options with latest/previous observation and last attempt |

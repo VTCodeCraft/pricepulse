@@ -186,6 +186,42 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
       expect(await api('GET', '/catalog/products/2331')).toMatchObject({ status: 502, body: { error: { code: 'store_unavailable' } } });
       expect((await api('GET', '/catalog/products/abc')).status).toBe(400);
     });
+
+    const seedCatalog = async () => {
+      await products.upsertCatalogProducts([
+        { id: 2331, name: 'Halvard Drawing Tablet Prime', slug: 's', brand: 'Halvard', category: 'Tablets', sku: 'SK-2331-HA', description: '' },
+        { id: 2891, name: 'Halvard Drawing Tablet Arc', slug: 's', brand: 'Halvard', category: 'Tablets', sku: 'SK-2891-HA', description: '' },
+        { id: 2948, name: 'Redwick Electronic Drum Kit Arc', slug: 's', brand: 'Redwick', category: 'Instruments', sku: 'SK-2948-RE', description: '' },
+      ]);
+    };
+
+    it('lists the whole catalogue a page at a time, with the matching total', async () => {
+      await seedCatalog();
+      await api('GET', '/catalog/products/2331'); // fetching the details stores the options
+      const first = await api('GET', '/catalog/products?page=1&pageSize=2');
+      expect(first.status).toBe(200);
+      expect(first.body).toMatchObject({ query: '', page: 1, pageSize: 2, total: 3, catalog: { count: 3 } });
+      // Option counts are known once a product's details were fetched; listings carry none.
+      expect(first.body.results).toEqual([
+        { storeProductId: 2891, name: 'Halvard Drawing Tablet Arc', brand: 'Halvard', category: 'Tablets', sku: 'SK-2891-HA', optionCount: null },
+        { storeProductId: 2331, name: 'Halvard Drawing Tablet Prime', brand: 'Halvard', category: 'Tablets', sku: 'SK-2331-HA', optionCount: item.options.length },
+      ]);
+      expect((await api('GET', '/catalog/products?page=2&pageSize=2')).body.results.map(r => r.storeProductId)).toEqual([2948]);
+      expect((await api('GET', '/catalog/products?page=3&pageSize=2')).body).toMatchObject({ total: 3, results: [] });
+    });
+
+    it('filters the listing by name with the same matching as search', async () => {
+      await seedCatalog();
+      expect((await api('GET', '/catalog/products?q=halvard')).body).toMatchObject({ query: 'halvard', total: 2 });
+      expect((await api('GET', '/catalog/products?q=drum%20arc')).body.results.map(r => r.storeProductId)).toEqual([2948]);
+      expect((await api('GET', '/catalog/products?q=100%25')).body).toMatchObject({ total: 0, results: [] });
+    });
+
+    it('validates the listing parameters', async () => {
+      expect((await api('GET', '/catalog/products?q=a')).status).toBe(400);
+      expect((await api('GET', '/catalog/products?pageSize=61')).status).toBe(400);
+      expect((await api('GET', '/catalog/products?page=0')).status).toBe(400);
+    });
   });
 
   describe('tracking', () => {
