@@ -1,16 +1,19 @@
 import type { SvgIconComponent } from '@mui/icons-material';
 import Autorenew from '@mui/icons-material/Autorenew';
 import CheckCircleOutlineOutlined from '@mui/icons-material/CheckCircleOutlineOutlined';
+import CloudDoneOutlined from '@mui/icons-material/CloudDoneOutlined';
+import CloudOffOutlined from '@mui/icons-material/CloudOffOutlined';
 import HelpOutlineOutlined from '@mui/icons-material/HelpOutlineOutlined';
 import HighlightOff from '@mui/icons-material/HighlightOff';
 import HourglassEmptyOutlined from '@mui/icons-material/HourglassEmptyOutlined';
 import Inventory2Outlined from '@mui/icons-material/Inventory2Outlined';
 import RemoveShoppingCartOutlined from '@mui/icons-material/RemoveShoppingCartOutlined';
+import SyncOutlined from '@mui/icons-material/SyncOutlined';
 import Box from '@mui/material/Box';
 
 type Tone = 'success' | 'warning' | 'error' | 'neutral';
 
-// Scrape outcomes (success / retried / failed, or running while unfinished) and stock states.
+// Scrape outcomes (success / retried / failed, or running while unfinished), stock states and API connection states.
 // Each has a label and an icon, never colour alone.
 const STATUSES = {
   success: { label: 'Success', tone: 'success', icon: CheckCircleOutlineOutlined },
@@ -20,6 +23,9 @@ const STATUSES = {
   inStock: { label: 'In stock', tone: 'success', icon: Inventory2Outlined },
   outOfStock: { label: 'Out of stock', tone: 'error', icon: RemoveShoppingCartOutlined },
   unknown: { label: 'Unknown', tone: 'neutral', icon: HelpOutlineOutlined },
+  connected: { label: 'Connected', tone: 'success', icon: CloudDoneOutlined },
+  unavailable: { label: 'Unavailable', tone: 'error', icon: CloudOffOutlined },
+  checking: { label: 'Checking', tone: 'neutral', icon: SyncOutlined },
 } satisfies Record<string, { label: string; tone: Tone; icon: SvgIconComponent }>;
 
 export type BadgeStatus = keyof typeof STATUSES;
