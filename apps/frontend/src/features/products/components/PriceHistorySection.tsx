@@ -1,14 +1,14 @@
 import ShowChartOutlined from '@mui/icons-material/ShowChartOutlined';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
 import Skeleton from '@mui/material/Skeleton';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { useId, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { EmptyState } from '../../../components/common/EmptyState';
 import { ErrorState } from '../../../components/common/ErrorState';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
+import { SectionCard } from '../../../components/common/SectionCard';
+import { Stat } from '../../../components/common/Stat';
 import { TimeRangeToggle } from '../../../components/common/TimeRangeToggle';
 import { formatDateTime, formatPrice, formatRelativeTime } from '../../../lib/utils/format';
 import { rangeStart, timeRange, type TimeRange } from '../../../lib/utils/timeRange';
@@ -21,24 +21,16 @@ import { PriceChange } from './PriceChange';
 import { PriceHistoryChart } from './PriceHistoryChart';
 
 export function PriceHistorySection({ item }: { item: TrackedProduct }) {
-  const headingId = useId();
   const [range, setRange] = useState<TimeRange>('30d');
   const [openedAt] = useState(() => new Date()); // ranges count back from when the page opened
   const history = usePriceHistory(item.id);
 
   return (
-    <Card component="section" aria-labelledby={headingId} sx={{ p: 2.5 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 2.5 }}>
-        <Box>
-          <Typography variant="h2" id={headingId}>
-            Price history
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {item.optionLabel} · successful and retried scrapes only
-          </Typography>
-        </Box>
-        <TimeRangeToggle value={range} onChange={setRange} />
-      </Stack>
+    <SectionCard
+      title="Price history"
+      description={`${item.optionLabel} · successful and retried scrapes only`}
+      action={<TimeRangeToggle value={range} onChange={setRange} />}
+    >
 
       {history.isPending ? (
         <>
@@ -52,7 +44,7 @@ export function PriceHistorySection({ item }: { item: TrackedProduct }) {
       ) : (
         <HistoryView item={item} points={history.data} range={range} start={rangeStart(range, openedAt)} onShowAll={() => setRange('all')} />
       )}
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -125,24 +117,6 @@ function NoObservations({ item }: { item: TrackedProduct }) {
       title="Price history will appear after the first successful scrape."
       description={failed > 0 ? `${failed} ${failed === 1 ? 'attempt has' : 'attempts have'} failed so far; the scrape history below shows why.` : undefined}
     />
-  );
-}
-
-function Stat({ label, value, note }: { label: string; value: ReactNode; note?: string | null }) {
-  return (
-    <Box sx={{ minWidth: 0 }}>
-      <Typography variant="caption" component="p" sx={{ color: 'text.secondary' }}>
-        {label}
-      </Typography>
-      <Typography component="div" sx={{ fontSize: '1.125rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums', mt: 0.25 }}>
-        {value}
-      </Typography>
-      {note && (
-        <Typography variant="caption" component="p" sx={{ color: 'text.secondary' }}>
-          {note}
-        </Typography>
-      )}
-    </Box>
   );
 }
 

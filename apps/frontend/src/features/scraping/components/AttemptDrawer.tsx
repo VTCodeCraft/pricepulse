@@ -13,10 +13,12 @@ import { Detail, DetailList } from '../../../components/common/DetailList';
 import { ErrorState } from '../../../components/common/ErrorState';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { formatDuration, formatTimestamp } from '../../../lib/utils/format';
-import type { RunDetail, ScrapeRun } from '../../../types/scrape';
+import { monospace } from '../../../theme/theme';
+import type { RunDetail } from '../../../types/scrape';
 import { productPath } from '../../products/productInfo';
 import { useRun } from '../hooks/useScrapeLog';
 import {
+  RUN_STATUS_LABELS,
   TRIGGER_LABELS,
   attemptDurationMs,
   attemptPrice,
@@ -42,8 +44,6 @@ export function AttemptDrawer({ entry, open, onClose }: AttemptDrawerProps) {
     </Drawer>
   );
 }
-
-const monospace = { fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace', fontSize: '0.75rem' };
 
 function AttemptDetails({ entry, titleId, onClose }: { entry: LogEntry; titleId: string; onClose: () => void }) {
   const durationMs = attemptDurationMs(entry);
@@ -148,13 +148,6 @@ function AttemptDetails({ entry, titleId, onClose }: { entry: LogEntry; titleId:
     </Box>
   );
 }
-
-const RUN_STATUS_LABELS: Record<ScrapeRun['status'], string> = {
-  running: 'Running',
-  completed: 'Completed',
-  failed: 'Failed',
-  abandoned: 'Abandoned',
-};
 
 // The run this attempt was part of (GET /api/runs/:id), loaded when the drawer opens.
 function RunContext({ runId, attemptId }: { runId: number; attemptId: number }) {

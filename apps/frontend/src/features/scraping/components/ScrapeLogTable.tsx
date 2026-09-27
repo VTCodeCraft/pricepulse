@@ -5,6 +5,7 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { useState } from 'react';
 import { StatusBadge } from '../../../components/common/StatusBadge';
 import { formatDateTime, formatDuration, formatTimestamp } from '../../../lib/utils/format';
+import { monospace } from '../../../theme/theme';
 import { attemptDurationMs, attemptPrice, attemptStatus, attemptStock, attemptTime, triesLabel, type LogEntry } from '../scrapeLog';
 import { AttemptDrawer } from './AttemptDrawer';
 
@@ -70,7 +71,7 @@ const columns: GridColDef<LogEntry>[] = [
     renderCell: ({ row }) =>
       row.errorCode ? (
         <Tooltip title={row.errorMessage ?? ''}>
-          <Typography variant="body2" noWrap sx={{ fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace', fontSize: '0.75rem' }}>
+          <Typography variant="body2" noWrap sx={monospace}>
             {row.errorCode}
           </Typography>
         </Tooltip>

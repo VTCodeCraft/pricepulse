@@ -88,3 +88,6 @@ export const theme = createTheme({
     },
   },
 });
+
+// Codes and raw values (error codes, URLs, UTC timestamps).
+export const monospace = { fontFamily: 'ui-monospace, SFMono-Regular, Consolas, monospace', fontSize: '0.75rem' };

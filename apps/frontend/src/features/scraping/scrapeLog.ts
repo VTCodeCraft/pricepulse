@@ -54,6 +54,13 @@ export const TRIGGER_LABELS: Record<ScrapeRun['trigger'], string> = {
   cli: 'Command line',
 };
 
+export const RUN_STATUS_LABELS: Record<ScrapeRun['status'], string> = {
+  running: 'Running',
+  completed: 'Completed',
+  failed: 'Failed',
+  abandoned: 'Abandoned',
+};
+
 // Newest first across every option.
 export function mergeLogs(logs: LogEntry[][]): LogEntry[] {
   return logs.flat().sort((a, b) => new Date(attemptTime(b)).getTime() - new Date(attemptTime(a)).getTime() || b.id - a.id);
