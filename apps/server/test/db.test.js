@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import pg from 'pg';
 
 vi.mock('../src/scraper/store.js', () => ({ getItem: vi.fn(), getManifest: vi.fn(), getListingPage: vi.fn() }));
-vi.mock('../src/scraper/browser.js', () => ({ scrapeWithRetry: vi.fn(), launchBrowser: vi.fn() }));
+vi.mock('../src/scraper/browser.js', () => ({ scrapeWithRetry: vi.fn(), launchBrowser: vi.fn(), openProductSession: vi.fn() }));
 
 try {
   process.loadEnvFile(join(import.meta.dirname, '..', '.env'));
@@ -211,7 +211,9 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
       beforeEach(() => {
         store.getItem.mockResolvedValue(item);
         store.getManifest.mockResolvedValue(manifest);
-        scraper.launchBrowser.mockResolvedValue({ isConnected: () => true, close: async () => {} });
+        const browser = { isConnected: () => true, close: async () => {} };
+        scraper.launchBrowser.mockResolvedValue(browser);
+        scraper.openProductSession.mockImplementation(async () => ({ browser: () => browser, close: vi.fn(async () => {}) }));
         scraper.scrapeWithRetry.mockImplementation(async ({ optionId }) => scraped(optionId));
       });
 
@@ -361,6 +363,40 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
         await runner.runTick({ trigger: 'cli', force: true });
         expect(await structureAlerts()).toEqual([{ data: expect.objectContaining({ changed: ['price'], previousHash: 'aaaa', currentHash: 'bbbb' }) }]);
         expect((await layoutVersions.latestStructure()).structure_hash).toBe('bbbb');
+      });
+
+      it('scrapes every option of a product in one run and one session, each on its own', async () => {
+        const [o1, o2, o3] = [await track('o1', new Date()), await track('o2', new Date()), await track('o3', new Date())];
+        scraper.scrapeWithRetry.mockImplementation(async ({ optionId }) => {
+          if (optionId === 'o2') return { outcome: 'failed', tries: [{ ok: false }, { ok: false }, { ok: false }], error: new ScrapeError('timeout', 'slow') };
+          const result = scraped(optionId);
+          return { ...result, result: { ...result.result, price: { o1: 90313, o3: 126406 }[optionId] } };
+        });
+        const run = await runner.runTick({ trigger: 'cron' });
+        expect(run).toMatchObject({ status: 'completed', due: 3, success: 2, failed: 1 });
+
+        expect(scraper.openProductSession).toHaveBeenCalledTimes(1);
+        const session = await scraper.openProductSession.mock.results[0].value;
+        expect(scraper.scrapeWithRetry.mock.calls.map(([target, options]) => [target, options.session])).toEqual([
+          [{ productId: 2331, optionId: 'o1' }, session],
+          [{ productId: 2331, optionId: 'o2' }, session],
+          [{ productId: 2331, optionId: 'o3' }, session],
+        ]);
+        expect(session.close).toHaveBeenCalledTimes(1);
+
+        const rows = (await sql.query('select run_id, tracked_product_id, outcome, price from scrape_attempts order by tracked_product_id')).rows;
+        expect(rows).toEqual([
+          { run_id: run.runId, tracked_product_id: o1, outcome: 'success', price: '90313.00' },
+          { run_id: run.runId, tracked_product_id: o2, outcome: 'failed', price: null },
+          { run_id: run.runId, tracked_product_id: o3, outcome: 'success', price: '126406.00' },
+        ]);
+      });
+
+      it('never stores a result against a different option than the one scraped', async () => {
+        const trackedId = await track('o1', new Date());
+        scraper.scrapeWithRetry.mockResolvedValue(scraped('o2'));
+        expect(await runner.runTick({ trigger: 'cron' })).toMatchObject({ failed: 1 });
+        expect(await attemptsFor(trackedId)).toEqual([expect.objectContaining({ outcome: 'failed', price: null, error_code: 'option_mismatch' })]);
       });
 
       it('the same observation never alerts twice', async () => {

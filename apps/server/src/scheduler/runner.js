@@ -7,7 +7,7 @@ import { upsertProduct } from '../db/repositories/products.repository.js';
 import { finishAttempt, failUnfinishedAttempts, latestObservation, startAttempt } from '../db/repositories/scrape-attempts.repository.js';
 import { finishRun, reapStaleRuns, setRunProductsDue, startRun, touchRun } from '../db/repositories/scrape-runs.repository.js';
 import { getTrackedByIds, listActiveTracked, setNextScrapeAt } from '../db/repositories/tracked-products.repository.js';
-import { launchBrowser, scrapeWithRetry } from '../scraper/browser.js';
+import { launchBrowser, openProductSession, scrapeWithRetry } from '../scraper/browser.js';
 import { hashManifest, hashSchema, validateManifest } from '../scraper/layout.js';
 import { parsePrice } from '../scraper/parser.js';
 import { ScrapeError, sleep } from '../scraper/retry.js';
@@ -65,48 +65,59 @@ async function executeRun(run, { trigger, trackedIds, force = false, faultPlan, 
         preflightError = error;
       }
 
-      // Phase 3 scrapes one option per page load; Phase 8 will collect several options in one page session.
-      for (const tracked of options) {
-        const attemptId = await startAttempt(run.id, tracked.id);
-        let attempt;
-        if (preflightError) {
-          attempt = failedAttempt(preflightError);
-        } else if (!item.options.some(o => o.id === tracked.option_id)) {
-          attempt = failedAttempt(new ScrapeError('option_not_found', `product ${productId} no longer offers ${tracked.option_id}`));
-        } else {
-          let scrape;
-          try {
-            browser = browser?.isConnected() ? browser : await launchBrowser();
-            scrape = await scrapeWithRetry({ productId, optionId: tracked.option_id }, { browser, faultPlan, log });
-          } catch (error) {
-            scrape = { outcome: 'failed', error, tries: [] }; // the browser could not start: record why
+      // Every option of the product is scraped in this run, in one browser session (see openProductSession); each
+      // still gets its own page load, attempt row, retries and checks, so one option's failure never touches another.
+      let session;
+      try {
+        for (const tracked of options) {
+          const attemptId = await startAttempt(run.id, tracked.id);
+          let attempt;
+          if (preflightError) {
+            attempt = failedAttempt(preflightError);
+          } else if (!item.options.some(o => o.id === tracked.option_id)) {
+            attempt = failedAttempt(new ScrapeError('option_not_found', `product ${productId} no longer offers ${tracked.option_id}`));
+          } else {
+            let scrape;
+            try {
+              browser = browser?.isConnected() ? browser : await launchBrowser();
+              if (!session?.browser()?.isConnected()) session = await openProductSession(browser).catch(() => undefined);
+              scrape = await scrapeWithRetry({ productId, optionId: tracked.option_id }, { browser, session, faultPlan, log });
+            } catch (error) {
+              scrape = { outcome: 'failed', error, tries: [] }; // the browser could not start: record why
+            }
+            // A result is only ever stored against the option it was scraped for.
+            const foreign = scrape.result && (scrape.result.productId !== productId || scrape.result.optionId !== tracked.option_id);
+            attempt = foreign
+              ? failedAttempt(new ScrapeError('option_mismatch', `result was for ${scrape.result.productId}/${scrape.result.optionId}`), scrape.tries)
+              : scrape.result
+                ? successfulAttempt(scrape, await layoutVersionId(scrape.result.layout.manifestHash, layoutIds))
+                : failedAttempt(scrape.error, scrape.tries);
           }
-          attempt = scrape.result
-            ? successfulAttempt(scrape, await layoutVersionId(scrape.result.layout.manifestHash, layoutIds))
-            : failedAttempt(scrape.error, scrape.tries);
-        }
-        // The previous observation is read before this attempt is stored, so it can only be an earlier one.
-        const previous = attempt.outcome === 'failed' ? undefined : await latestObservation(tracked.id);
-        await finishAttempt(attemptId, attempt);
-        counts[attempt.outcome]++;
-        if (attempt.structure) {
-          await checkPageStructure({ structure: attempt.structure, layoutVersionId: attempt.layoutVersionId, attemptId })
-            .then(status => status === 'changed' && log('store page structure changed; alert recorded'))
-            .catch(error => log(`could not check the page structure for attempt ${attemptId}: ${error.message}`));
-        }
-        if (previous) {
-          await recordObservationAlerts({ tracked, previous: observation(previous), current: attempt, attemptId })
-            .then(alerts => alerts.forEach(alert => log(`alert: ${alert.title} (${alert.message})`)))
-            .catch(error => log(`could not record alerts for attempt ${attemptId}: ${error.message}`));
-        }
-        log(`${tracked.product_name} / ${tracked.option_label}: ${attempt.outcome}${attempt.price ? ` ${attempt.currency} ${attempt.price}, stock ${attempt.stock}` : ` (${attempt.errorCode})`}`);
+          // The previous observation is read before this attempt is stored, so it can only be an earlier one.
+          const previous = attempt.outcome === 'failed' ? undefined : await latestObservation(tracked.id);
+          await finishAttempt(attemptId, attempt);
+          counts[attempt.outcome]++;
+          if (attempt.structure) {
+            await checkPageStructure({ structure: attempt.structure, layoutVersionId: attempt.layoutVersionId, attemptId })
+              .then(status => status === 'changed' && log('store page structure changed; alert recorded'))
+              .catch(error => log(`could not check the page structure for attempt ${attemptId}: ${error.message}`));
+          }
+          if (previous) {
+            await recordObservationAlerts({ tracked, previous: observation(previous), current: attempt, attemptId })
+              .then(alerts => alerts.forEach(alert => log(`alert: ${alert.title} (${alert.message})`)))
+              .catch(error => log(`could not record alerts for attempt ${attemptId}: ${error.message}`));
+          }
+          log(`${tracked.product_name} / ${tracked.option_label}: ${attempt.outcome}${attempt.price ? ` ${attempt.currency} ${attempt.price}, stock ${attempt.stock}` : ` (${attempt.errorCode})`}`);
 
-        // Advance the schedule only when this run served the option's slot, so a manual or CLI run
-        // never pushes a scheduled scrape further away.
-        if (isDue(tracked.next_scrape_at, tickAt, config.schedulerToleranceMinutes)) {
-          await setNextScrapeAt(tracked.id, nextSlotAfterRun(tracked.next_scrape_at, new Date(), tracked.scrape_interval_minutes));
+          // Advance the schedule only when this run served the option's slot, so a manual or CLI run
+          // never pushes a scheduled scrape further away.
+          if (isDue(tracked.next_scrape_at, tickAt, config.schedulerToleranceMinutes)) {
+            await setNextScrapeAt(tracked.id, nextSlotAfterRun(tracked.next_scrape_at, new Date(), tracked.scrape_interval_minutes));
+          }
+          await touchRun(run.id);
         }
-        await touchRun(run.id);
+      } finally {
+        await session?.close().catch(() => {});
       }
     }
 

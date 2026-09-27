@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import pg from 'pg';
 
 vi.mock('../src/scraper/store.js', () => ({ getItem: vi.fn(), getManifest: vi.fn(), getListingPage: vi.fn() }));
-vi.mock('../src/scraper/browser.js', () => ({ scrapeWithRetry: vi.fn(), launchBrowser: vi.fn() }));
+vi.mock('../src/scraper/browser.js', () => ({ scrapeWithRetry: vi.fn(), launchBrowser: vi.fn(), openProductSession: vi.fn() }));
 
 try {
   process.loadEnvFile(join(import.meta.dirname, '..', '.env'));
@@ -69,7 +69,9 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
       throw new ScrapeError('product_not_found', `product ${id} does not exist in the store`);
     });
     store.getManifest.mockResolvedValue(manifest);
-    scraper.launchBrowser.mockResolvedValue({ isConnected: () => true, close: async () => {} });
+    const browser = { isConnected: () => true, close: async () => {} };
+    scraper.launchBrowser.mockResolvedValue(browser);
+    scraper.openProductSession.mockImplementation(async () => ({ browser: () => browser, close: async () => {} }));
     scraper.scrapeWithRetry.mockImplementation(async ({ optionId }) => scraped(optionId));
   });
 

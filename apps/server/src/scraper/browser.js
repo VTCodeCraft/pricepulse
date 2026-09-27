@@ -17,9 +17,18 @@ export async function launchBrowser({ headed = !config.headless, slowMo = 0 } = 
   }
 }
 
-// Up to config.maxTries tries, each in a fresh browser context. Pass `browser` to share one across scrapes
-// (the runner does); otherwise one is launched here and closed at the end. Only one browser at a time: Render has 512 MB.
-export async function scrapeWithRetry(target, { browser, headed, slowMo, faultPlan, log = () => {} } = {}) {
+const CONTEXT_OPTIONS = { viewport: { width: 1280, height: 900 }, locale: 'en-IN', timezoneId: 'UTC' };
+
+// One browser context for the options of one product in a run: they share cookies, cache and the consent choice,
+// while each option still gets its own page load, option check and quote check. Close it after the product.
+export async function openProductSession(browser) {
+  return browser.newContext(CONTEXT_OPTIONS);
+}
+
+// Up to config.maxTries tries. Pass `browser` to share one across scrapes (the runner does); otherwise one is launched
+// here and closed at the end. Only one browser at a time: Render has 512 MB. With a product `session` the first try
+// runs in it; a retry always gets a fresh context, so a failure never carries over into the next try.
+export async function scrapeWithRetry(target, { browser, session, headed, slowMo, faultPlan, log = () => {} } = {}) {
   let ownBrowser;
   const liveBrowser = async () => {
     if (browser?.isConnected()) return browser;
@@ -30,7 +39,8 @@ export async function scrapeWithRetry(target, { browser, headed, slowMo, faultPl
     return await runWithRetry(
       async tryNumber => {
         log(`try ${tryNumber}/${config.maxTries}`);
-        return scrapeOption(await liveBrowser(), target, { faultPlan, log });
+        const shared = tryNumber === 1 && session?.browser()?.isConnected() ? session : undefined;
+        return scrapeOption(await liveBrowser(), target, { faultPlan, log, session: shared });
       },
       {
         maxTries: config.maxTries,
@@ -44,7 +54,7 @@ export async function scrapeWithRetry(target, { browser, headed, slowMo, faultPl
 }
 
 // One try. Returns a validated result or throws a ScrapeError; never returns a partial result.
-export async function scrapeOption(browser, { productId, optionId }, { faultPlan, log = () => {} } = {}) {
+export async function scrapeOption(browser, { productId, optionId }, { faultPlan, session, log = () => {} } = {}) {
   const started = Date.now();
   const timingsMs = {};
   const mark = (phase, detail) => {
@@ -61,19 +71,20 @@ export async function scrapeOption(browser, { productId, optionId }, { faultPlan
   mark('preflight', `${item.name} / ${option.label}`);
 
   let context;
+  let page;
   let timedOut = false;
-  // Closing the context makes every pending Playwright call fail at once, which ends the try.
+  // Closing the page (or our own context) makes every pending Playwright call fail at once, which ends the try.
   const watchdog = setTimeout(() => {
     timedOut = true;
-    context?.close().catch(() => {});
+    (session ? page : context)?.close().catch(() => {});
   }, config.tryTimeoutMs);
 
   try {
-    context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'en-IN', timezoneId: 'UTC' });
-    const page = await context.newPage();
+    context = session ?? (await browser.newContext(CONTEXT_OPTIONS));
+    page = await context.newPage();
     const traffic = recordStoreTraffic(page);
     if (faultPlan) await installFaults(page, faultPlan);
-    const evidence = { clicks: 0, pendingRechecks: 0, consentClicks: 0 };
+    const evidence = { clicks: 0, pendingRechecks: 0, consentClicks: 0, sharedSession: Boolean(session) };
     await dismissConsentWhenShown(page, evidence);
 
     await page.goto(`${config.storeBaseUrl}/item/${productId}`, { waitUntil: 'domcontentloaded', timeout: config.navTimeoutMs });
@@ -149,7 +160,7 @@ export async function scrapeOption(browser, { productId, optionId }, { faultPlan
     throw toScrapeError(error);
   } finally {
     clearTimeout(watchdog);
-    await context?.close().catch(() => {});
+    await (session ? page : context)?.close().catch(() => {});
   }
 }
 
