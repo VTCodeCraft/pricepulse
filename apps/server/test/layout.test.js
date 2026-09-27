@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checkDomContract, classifyChange, hashManifest, hashSchema, validateManifest } from '../src/layout.js';
-import { htmlToElement } from '../src/parse.js';
+import { checkDomContract, classifyChange, hashManifest, hashSchema, validateManifest } from '../src/scraper/layout.js';
+import { htmlToElement } from '../src/scraper/parser.js';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures');
 const readJson = path => JSON.parse(readFileSync(join(FIXTURES, path), 'utf8'));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkQuoteProvenance } from '../src/scraper.js';
+import { checkQuoteProvenance } from '../src/scraper/browser.js';
 
 const target = { productId: 2331, optionId: 'o1', since: 1_000 };
 const quote = overrides => ({ at: 2_000, status: 200, pathItemId: 2331, urlOption: 'o1', itemId: 2331, option: 'o1', ...overrides });

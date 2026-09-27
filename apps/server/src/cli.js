@@ -5,10 +5,11 @@
 //   ALLOW_FAULT_INJECTION=true pnpm scrape -- --product 2179 --option o1 --inject quote:503x6
 import { parseArgs } from 'node:util';
 import { config } from './config.js';
-import { closeDb } from './db.js';
-import { assertFaultInjectionAllowed, parseFaultPlan } from './faults.js';
-import { runTick, trackOption } from './runner.js';
-import { scrapeWithRetry } from './scraper.js';
+import { closeDb } from './db/client.js';
+import { runTick } from './scheduler/runner.js';
+import { scrapeWithRetry } from './scraper/browser.js';
+import { assertFaultInjectionAllowed, parseFaultPlan } from './scraper/faults.js';
+import { trackOption } from './services/tracking.service.js';
 
 const argv = process.argv.slice(2);
 if (argv[0] === '--') argv.shift(); // pnpm forwards the "--" separator

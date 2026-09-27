@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { toErrorResponse } from '../src/app.js';
-import { ScrapeError } from '../src/retry.js';
-import { HttpError } from '../src/routes.js';
+import { toErrorResponse } from '../src/middleware/error-handler.js';
+import { ScrapeError } from '../src/scraper/retry.js';
+import { HttpError } from '../src/utils/http-error.js';
 
 const codeOf = error => {
   const { status, body } = toErrorResponse(error);

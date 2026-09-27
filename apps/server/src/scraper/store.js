@@ -1,6 +1,6 @@
 // HTTP client for the store's plain JSON endpoints (catalog, product details, layout manifest).
 // Requests are spaced out and retried on transient failures; the store rate-limits bursts (429, then nginx 503 HTML).
-import { config } from './config.js';
+import { config } from '../config.js';
 import { validateManifest } from './layout.js';
 import { ScrapeError, retryDelayMs, sleep } from './retry.js';
 

@@ -79,9 +79,18 @@ while request timeouts are much shorter. Only one run can be active at a time (d
 
 ## Layout
 
-`src/`: `server.js` (start-up), `app.js` (CORS, errors), `routes.js` (HTTP handlers), `store.js` (HTTP JSON client),
-`catalog.js` (catalogue sync), `scraper.js` (browser flow), `parse.js` (price/stock parsing), `layout.js` (manifest and
-page-structure checks), `retry.js` (retry policy and outcomes), `faults.js` (opt-in fault injection for demos),
-`schedule.js` (slot alignment), `runner.js` (one scrape run), `db.js` (SQL), `csv.js`, `migrate.js`, `cli.js`.
-Settings and their environment variables: `src/config.js`, `.env.example`. Store behavior: `docs/store-notes.md`.
-Render measurements: `docs/deployment-notes.md`.
+Entry points: `src/server.js` (API: applies migrations, then listens), `src/cli.js` (`pnpm scrape`) and
+`scripts/migrate.js` (`pnpm migrate`). `src/app.js` builds the Express app; `src/config.js` holds every setting and
+its environment variable (see also `.env.example`).
+
+| Folder in `src/` | Contents |
+|---|---|
+| `routes/` | HTTP handlers, one file per resource: health, catalog, tracked, runs, alerts, layout, export |
+| `middleware/` | CORS, the `CRON_SECRET` check, the JSON error handler |
+| `services/` | Logic shared by routes and the CLI: catalogue sync, tracking an option, starting a run under the lock |
+| `scheduler/` | `schedule.js` (slot alignment), `runner.js` (one scrape run) |
+| `scraper/` | `store.js` (store JSON client), `browser.js` (Playwright price flow), `parser.js` (price/stock parsing), `layout.js` (manifest and page-structure checks), `retry.js` (retry policy and outcomes), `faults.js` (opt-in fault injection for demos) |
+| `db/` | `client.js` (connection pool), `migrate.js`, `repositories/` (the SQL, one file per table) |
+| `utils/` | `http-error.js`, `validation.js` (request checks), `serializers.js` (rows to API JSON), `csv.js` |
+
+SQL migrations: `db/migrations/`. Store behavior: `docs/store-notes.md`. Render measurements: `docs/deployment-notes.md`.

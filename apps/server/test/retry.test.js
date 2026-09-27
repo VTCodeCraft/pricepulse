@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ScrapeError, deriveOutcome, isRetryable, retryDelayMs, runWithRetry } from '../src/retry.js';
+import { ScrapeError, deriveOutcome, isRetryable, retryDelayMs, runWithRetry } from '../src/scraper/retry.js';
 
 const cleanResult = { evidence: { storeFailures: 0, pendingRechecks: 0 } };
 const options = wait => ({ maxTries: 3, baseDelayMs: 5_000, wait, random: () => 0.5 });

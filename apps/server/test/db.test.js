@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
 
-vi.mock('../src/store.js', () => ({ getItem: vi.fn(), getManifest: vi.fn(), getListingPage: vi.fn() }));
-vi.mock('../src/scraper.js', () => ({ scrapeWithRetry: vi.fn(), launchBrowser: vi.fn() }));
+vi.mock('../src/scraper/store.js', () => ({ getItem: vi.fn(), getManifest: vi.fn(), getListingPage: vi.fn() }));
+vi.mock('../src/scraper/browser.js', () => ({ scrapeWithRetry: vi.fn(), launchBrowser: vi.fn() }));
 
 try {
   process.loadEnvFile(join(import.meta.dirname, '..', '.env'));
@@ -22,7 +22,7 @@ const manifest = JSON.parse(readFileSync(join(FIXTURES, 'manifest-633003.json'),
 const HOUR = 3_600_000;
 
 describe.skipIf(!TEST_URL)('database and runner', () => {
-  let db;
+  let client, migrations, products, trackedProducts, runs, attempts, layoutVersions, alerts;
   let runner;
   let store;
   let scraper;
@@ -33,26 +33,33 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
   beforeAll(async () => {
     vi.stubEnv('DATABASE_URL', TEST_URL);
     vi.stubEnv('RUNNER_PRODUCT_GAP_MS', '0');
-    db = await import('../src/db.js');
-    runner = await import('../src/runner.js');
-    store = await import('../src/store.js');
-    scraper = await import('../src/scraper.js');
-    layout = await import('../src/layout.js');
-    ({ ScrapeError } = await import('../src/retry.js'));
+    client = await import('../src/db/client.js');
+    migrations = await import('../src/db/migrate.js');
+    products = await import('../src/db/repositories/products.repository.js');
+    trackedProducts = await import('../src/db/repositories/tracked-products.repository.js');
+    runs = await import('../src/db/repositories/scrape-runs.repository.js');
+    attempts = await import('../src/db/repositories/scrape-attempts.repository.js');
+    layoutVersions = await import('../src/db/repositories/layout-versions.repository.js');
+    alerts = await import('../src/db/repositories/alerts.repository.js');
+    runner = await import('../src/scheduler/runner.js');
+    store = await import('../src/scraper/store.js');
+    scraper = await import('../src/scraper/browser.js');
+    layout = await import('../src/scraper/layout.js');
+    ({ ScrapeError } = await import('../src/scraper/retry.js'));
     await sql.connect();
     await sql.query('drop table if exists alerts, scrape_attempts, layout_versions, scrape_runs, tracked_products, products, schema_migrations cascade');
   });
 
   afterAll(async () => {
     await sql.end();
-    await db?.closeDb();
+    await client?.closeDb();
     vi.unstubAllEnvs();
   });
 
   describe('migrations', () => {
     it('apply once, in order, and create every table', async () => {
-      expect(await db.migrate()).toEqual(['001_init.sql', '002_catalog_synced_at_nullable.sql']);
-      expect(await db.migrate()).toEqual([]);
+      expect(await migrations.migrate()).toEqual(['001_init.sql', '002_catalog_synced_at_nullable.sql']);
+      expect(await migrations.migrate()).toEqual([]);
       const { rows } = await sql.query("select tablename from pg_tables where schemaname = 'public' order by tablename");
       expect(rows.map(r => r.tablename)).toEqual(['alerts', 'layout_versions', 'products', 'schema_migrations', 'scrape_attempts', 'scrape_runs', 'tracked_products']);
       const rls = await sql.query("select count(*)::int as n from pg_tables where schemaname = 'public' and rowsecurity");
@@ -64,7 +71,7 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
     beforeEach(async () => {
       await sql.query('truncate alerts, scrape_attempts, layout_versions, scrape_runs, tracked_products, products restart identity cascade');
       vi.clearAllMocks();
-      await db.upsertProduct(item);
+      await products.upsertProduct(item);
     });
 
     const track = (optionId, nextScrapeAt) => sql.query(
@@ -113,20 +120,20 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
 
     describe('tracked products', () => {
       it('defaults to a 120-minute interval and re-activates instead of duplicating', async () => {
-        const first = await db.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' });
+        const first = await trackedProducts.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' });
         expect(first).toMatchObject({ scrape_interval_minutes: 120, is_active: true });
         await sql.query('update tracked_products set is_active = false where id = $1', [first.id]);
-        expect(await db.listActiveTracked()).toHaveLength(0);
-        const again = await db.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' });
+        expect(await trackedProducts.listActiveTracked()).toHaveLength(0);
+        const again = await trackedProducts.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' });
         expect(again.id).toBe(first.id);
-        expect((await db.listActiveTracked())[0]).toMatchObject({ id: first.id, product_name: item.name, option_axis: 'Storage' });
+        expect((await trackedProducts.listActiveTracked())[0]).toMatchObject({ id: first.id, product_name: item.name, option_axis: 'Storage' });
       });
 
       it('changing the interval re-aligns the next scrape', async () => {
-        const tracked = await db.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' });
+        const tracked = await trackedProducts.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' });
         const next = new Date('2026-09-27T00:00:00Z');
-        await db.updateTracked(tracked.id, { intervalMinutes: 1440, nextScrapeAt: next });
-        const [row] = await db.getTrackedByIds([tracked.id]);
+        await trackedProducts.updateTracked(tracked.id, { intervalMinutes: 1440, nextScrapeAt: next });
+        const [row] = await trackedProducts.getTrackedByIds([tracked.id]);
         expect(row).toMatchObject({ scrape_interval_minutes: 1440, next_scrape_at: next });
       });
 
@@ -139,18 +146,18 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
 
     describe('run lock and reaper', () => {
       it('only one run can be running at a time', async () => {
-        const first = await db.startRun({ trigger: 'cron', host: 'test' });
+        const first = await runs.startRun({ trigger: 'cron', host: 'test' });
         expect(first.status).toBe('running');
-        expect(await db.startRun({ trigger: 'manual', host: 'test' })).toBeNull();
-        await db.finishRun(first.id, { status: 'completed' });
-        expect(await db.startRun({ trigger: 'manual', host: 'test' })).not.toBeNull();
+        expect(await runs.startRun({ trigger: 'manual', host: 'test' })).toBeNull();
+        await runs.finishRun(first.id, { status: 'completed' });
+        expect(await runs.startRun({ trigger: 'manual', host: 'test' })).not.toBeNull();
       });
 
       it('closes a run whose heartbeat stopped and fails its unfinished attempts', async () => {
         const trackedId = await track('o1', new Date());
         const stale = (await sql.query("insert into scrape_runs (trigger, heartbeat_at) values ('cron', now() - interval '20 minutes') returning id")).rows[0].id;
-        await db.startAttempt(stale, trackedId);
-        expect(await db.reapStaleRuns(15)).toEqual([stale]);
+        await attempts.startAttempt(stale, trackedId);
+        expect(await runs.reapStaleRuns(15)).toEqual([stale]);
         const run = (await sql.query('select status, finished_at from scrape_runs where id = $1', [stale])).rows[0];
         expect(run.status).toBe('abandoned');
         const attempt = (await sql.query('select outcome, error_code, price, stock from scrape_attempts where run_id = $1', [stale])).rows[0];
@@ -159,8 +166,8 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
 
       it('leaves a long but live run alone: only a stopped heartbeat counts as stale', async () => {
         const longRun = (await sql.query("insert into scrape_runs (trigger, started_at, heartbeat_at) values ('cron', now() - interval '2 hours', now()) returning id")).rows[0].id;
-        expect(await db.reapStaleRuns(15)).toEqual([]);
-        await db.touchRun(longRun);
+        expect(await runs.reapStaleRuns(15)).toEqual([]);
+        await runs.touchRun(longRun);
         expect((await sql.query('select status from scrape_runs where id = $1', [longRun])).rows[0].status).toBe('running');
       });
     });
@@ -168,16 +175,16 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
     describe('layout versions and alerts', () => {
       it('records each manifest once and counts sightings', async () => {
         const version = { manifestHash: 'abc', schemaHash: 'def', revision: 633003, variant: 3, manifest, supported: true };
-        const id = await db.recordLayoutVersion(version);
-        expect(await db.recordLayoutVersion(version)).toBe(id);
+        const id = await layoutVersions.recordLayoutVersion(version);
+        expect(await layoutVersions.recordLayoutVersion(version)).toBe(id);
         expect((await sql.query('select seen_count from layout_versions where id = $1', [id])).rows[0].seen_count).toBe(2);
       });
 
       it('alerts each event once', async () => {
         const alert = { type: 'price_drop', severity: 'info', dedupeKey: 'attempt-1', title: 'Price drop', message: '₹90,313 → ₹85,000' };
-        expect(await db.insertAlert(alert)).toMatchObject({ type: 'price_drop', read_at: null, email_status: 'not_configured' });
-        expect(await db.insertAlert(alert)).toBeNull();
-        expect(await db.insertAlert({ ...alert, dedupeKey: 'attempt-2' })).not.toBeNull();
+        expect(await alerts.insertAlert(alert)).toMatchObject({ type: 'price_drop', read_at: null, email_status: 'not_configured' });
+        expect(await alerts.insertAlert(alert)).toBeNull();
+        expect(await alerts.insertAlert({ ...alert, dedupeKey: 'attempt-2' })).not.toBeNull();
       });
     });
 
@@ -217,7 +224,7 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
         const run = await runner.runTick({ trigger: 'cron' });
         expect(run).toMatchObject({ status: 'completed', due: 1, success: 1, retried: 0, failed: 0 });
 
-        const [attempt] = await db.listAttempts(due);
+        const [attempt] = await attempts.listAttempts(due);
         expect(attempt).toMatchObject({ outcome: 'success', price: '90313.00', currency: 'INR', stock: 141, tries: 1, layout_revision: 633003 });
         expect(attempt.extras).toEqual({ mrp: 215031, memberPrice: 152672 });
         expect(attempt.layout_version_id).not.toBeNull();
@@ -288,7 +295,7 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
 
       it('does not start while another run holds the lock', async () => {
         await track('o1', new Date());
-        await db.startRun({ trigger: 'manual', host: 'test' });
+        await runs.startRun({ trigger: 'manual', host: 'test' });
         expect(await runner.runTick({ trigger: 'cron' })).toEqual({ status: 'busy' });
         expect(scraper.scrapeWithRetry).not.toHaveBeenCalled();
       });

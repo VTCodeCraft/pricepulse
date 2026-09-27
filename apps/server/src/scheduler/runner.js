@@ -1,14 +1,18 @@
 // One scrape run: take the DB lock, pick the options to scrape, scrape them one by one with the Phase 3 scraper,
 // and record every attempt honestly (a failed attempt never carries a price or stock).
 import os from 'node:os';
-import { config } from './config.js';
-import * as db from './db.js';
-import { hashManifest, hashSchema, validateManifest } from './layout.js';
-import { parsePrice } from './parse.js';
-import { ScrapeError, sleep } from './retry.js';
-import { DEFAULT_INTERVAL, SCRAPE_INTERVALS, isDue, nextSlotAfterRun } from './schedule.js';
-import { launchBrowser, scrapeWithRetry } from './scraper.js';
-import { getItem, getManifest } from './store.js';
+import { config } from '../config.js';
+import { recordLayoutVersion } from '../db/repositories/layout-versions.repository.js';
+import { upsertProduct } from '../db/repositories/products.repository.js';
+import { finishAttempt, failUnfinishedAttempts, startAttempt } from '../db/repositories/scrape-attempts.repository.js';
+import { finishRun, reapStaleRuns, setRunProductsDue, startRun, touchRun } from '../db/repositories/scrape-runs.repository.js';
+import { getTrackedByIds, listActiveTracked, setNextScrapeAt } from '../db/repositories/tracked-products.repository.js';
+import { launchBrowser, scrapeWithRetry } from '../scraper/browser.js';
+import { hashManifest, hashSchema, validateManifest } from '../scraper/layout.js';
+import { parsePrice } from '../scraper/parser.js';
+import { ScrapeError, sleep } from '../scraper/retry.js';
+import { getItem, getManifest } from '../scraper/store.js';
+import { isDue, nextSlotAfterRun } from './schedule.js';
 
 // trigger: 'cron' | 'manual' | 'initial' | 'cli'. By default only due options are scraped;
 // trackedIds picks specific rows and force picks every active row.
@@ -21,10 +25,10 @@ export async function runTick(options) {
 // right away. `finished` settles when the run is done and never rejects.
 export async function startTick(options) {
   const { trigger, faultPlan, log = () => {} } = options;
-  const reaped = await db.reapStaleRuns(config.staleRunMinutes);
+  const reaped = await reapStaleRuns(config.staleRunMinutes);
   if (reaped.length) log(`closed stale run(s) ${reaped.join(', ')} as abandoned`);
 
-  const run = await db.startRun({ trigger, host: os.hostname(), faultInjection: faultPlan ?? null });
+  const run = await startRun({ trigger, host: os.hostname(), faultInjection: faultPlan ?? null });
   if (!run) {
     log('another run is in progress; nothing started');
     return { status: 'busy' };
@@ -38,9 +42,9 @@ async function executeRun(run, { trigger, trackedIds, force = false, faultPlan, 
   let browser;
   try {
     const targets = trackedIds
-      ? await db.getTrackedByIds(trackedIds)
-      : (await db.listActiveTracked()).filter(t => force || isDue(t.next_scrape_at, tickAt, config.schedulerToleranceMinutes));
-    await db.setRunProductsDue(run.id, targets.length);
+      ? await getTrackedByIds(trackedIds)
+      : (await listActiveTracked()).filter(t => force || isDue(t.next_scrape_at, tickAt, config.schedulerToleranceMinutes));
+    await setRunProductsDue(run.id, targets.length);
     log(`run ${run.id} (${trigger}): ${targets.length} option(s) to scrape`);
 
     const layoutIds = new Map(); // manifest hash → layout_versions.id, looked up once per run
@@ -54,14 +58,14 @@ async function executeRun(run, { trigger, trackedIds, force = false, faultPlan, 
       let preflightError;
       try {
         item = await getItem(productId);
-        await db.upsertProduct(item);
+        await upsertProduct(item);
       } catch (error) {
         preflightError = error;
       }
 
       // Phase 3 scrapes one option per page load; Phase 8 will collect several options in one page session.
       for (const tracked of options) {
-        const attemptId = await db.startAttempt(run.id, tracked.id);
+        const attemptId = await startAttempt(run.id, tracked.id);
         let attempt;
         if (preflightError) {
           attempt = failedAttempt(preflightError);
@@ -79,42 +83,30 @@ async function executeRun(run, { trigger, trackedIds, force = false, faultPlan, 
             ? successfulAttempt(scrape, await layoutVersionId(scrape.result.layout.manifestHash, layoutIds))
             : failedAttempt(scrape.error, scrape.tries);
         }
-        await db.finishAttempt(attemptId, attempt);
+        await finishAttempt(attemptId, attempt);
         counts[attempt.outcome]++;
         log(`${tracked.product_name} / ${tracked.option_label}: ${attempt.outcome}${attempt.price ? ` ${attempt.currency} ${attempt.price}, stock ${attempt.stock}` : ` (${attempt.errorCode})`}`);
 
         // Advance the schedule only when this run served the option's slot, so a manual or CLI run
         // never pushes a scheduled scrape further away.
         if (isDue(tracked.next_scrape_at, tickAt, config.schedulerToleranceMinutes)) {
-          await db.setNextScrapeAt(tracked.id, nextSlotAfterRun(tracked.next_scrape_at, new Date(), tracked.scrape_interval_minutes));
+          await setNextScrapeAt(tracked.id, nextSlotAfterRun(tracked.next_scrape_at, new Date(), tracked.scrape_interval_minutes));
         }
-        await db.touchRun(run.id);
+        await touchRun(run.id);
       }
     }
 
-    await db.finishRun(run.id, { status: 'completed', ...counts });
+    await finishRun(run.id, { status: 'completed', ...counts });
     return { runId: run.id, status: 'completed', due: targets.length, ...counts };
   } catch (error) {
     // Infrastructure failure (database, browser launch): the run itself failed, not a store scrape.
     log(`run ${run.id} failed: ${error.message}`);
-    await db.failUnfinishedAttempts([run.id]).catch(() => {});
-    await db.finishRun(run.id, { status: 'failed', ...counts, errorMessage: error.message }).catch(() => {});
+    await failUnfinishedAttempts([run.id]).catch(() => {});
+    await finishRun(run.id, { status: 'failed', ...counts, errorMessage: error.message }).catch(() => {});
     return { runId: run.id, status: 'failed', error: error.message, ...counts };
   } finally {
     await browser?.close().catch(() => {});
   }
-}
-
-// Starts tracking an option after checking it against the store. Re-tracking re-activates the same row.
-export async function trackOption(productId, optionId, { intervalMinutes = DEFAULT_INTERVAL, thresholdPct } = {}) {
-  if (!SCRAPE_INTERVALS.includes(intervalMinutes)) {
-    throw new Error(`interval must be one of ${SCRAPE_INTERVALS.join(', ')} minutes, got ${intervalMinutes}`);
-  }
-  const item = await getItem(productId);
-  const option = item.options.find(o => o.id === optionId);
-  if (!option) throw new ScrapeError('option_not_found', `product ${productId} has no option ${optionId}`);
-  await db.upsertProduct(item);
-  return db.addTrackedProduct({ storeProductId: productId, optionId, optionLabel: option.label, intervalMinutes, thresholdPct });
 }
 
 function groupByProduct(tracked) {
@@ -154,7 +146,7 @@ async function layoutVersionId(manifestHash, cache) {
   try {
     const manifest = await getManifest();
     if (hashManifest(manifest) === manifestHash) {
-      id = await db.recordLayoutVersion({
+      id = await recordLayoutVersion({
         manifestHash,
         schemaHash: hashSchema(manifest),
         revision: manifest.revision,

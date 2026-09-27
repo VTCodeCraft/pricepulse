@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
 
-vi.mock('../src/store.js', () => ({ getItem: vi.fn(), getManifest: vi.fn(), getListingPage: vi.fn() }));
-vi.mock('../src/scraper.js', () => ({ scrapeWithRetry: vi.fn(), launchBrowser: vi.fn() }));
+vi.mock('../src/scraper/store.js', () => ({ getItem: vi.fn(), getManifest: vi.fn(), getListingPage: vi.fn() }));
+vi.mock('../src/scraper/browser.js', () => ({ scrapeWithRetry: vi.fn(), launchBrowser: vi.fn() }));
 
 try {
   process.loadEnvFile(join(import.meta.dirname, '..', '.env'));
@@ -26,7 +26,7 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
   const sql = new pg.Client({ connectionString: TEST_URL });
   let server;
   let base;
-  let db;
+  let client, migrations, products, trackedProducts, layoutVersions, alerts;
   let store;
   let scraper;
   let ScrapeError;
@@ -37,14 +37,19 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
     vi.stubEnv('CORS_ORIGINS', FRONTEND);
     vi.stubEnv('MAX_TRACKED', '3');
     vi.stubEnv('RUNNER_PRODUCT_GAP_MS', '0');
-    db = await import('../src/db.js');
-    store = await import('../src/store.js');
-    scraper = await import('../src/scraper.js');
-    ({ ScrapeError } = await import('../src/retry.js'));
+    client = await import('../src/db/client.js');
+    migrations = await import('../src/db/migrate.js');
+    products = await import('../src/db/repositories/products.repository.js');
+    trackedProducts = await import('../src/db/repositories/tracked-products.repository.js');
+    layoutVersions = await import('../src/db/repositories/layout-versions.repository.js');
+    alerts = await import('../src/db/repositories/alerts.repository.js');
+    store = await import('../src/scraper/store.js');
+    scraper = await import('../src/scraper/browser.js');
+    ({ ScrapeError } = await import('../src/scraper/retry.js'));
     const { createApp } = await import('../src/app.js');
     await sql.connect();
     await sql.query('drop table if exists alerts, scrape_attempts, layout_versions, scrape_runs, tracked_products, products, schema_migrations cascade');
-    await db.migrate();
+    await migrations.migrate();
     server = createApp().listen(0);
     base = `http://127.0.0.1:${server.address().port}/api`;
   });
@@ -52,7 +57,7 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
   afterAll(async () => {
     server?.close();
     await sql.end();
-    await db?.closeDb();
+    await client?.closeDb();
     vi.unstubAllEnvs();
   });
 
@@ -250,8 +255,8 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
   describe('history, scrape log and CSV', () => {
     let trackedId;
     beforeEach(async () => {
-      await db.upsertProduct({ ...item, name: 'Halvard Drawing Tablet, "Prime"' });
-      trackedId = (await db.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' })).id;
+      await products.upsertProduct({ ...item, name: 'Halvard Drawing Tablet, "Prime"' });
+      trackedId = (await trackedProducts.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' })).id;
       await addAttempt(trackedId, { outcome: 'success', price: 100000, stock: 5, minutesAgo: 240 });
       await addAttempt(trackedId, { outcome: 'retried', price: 90313, stock: 0, minutesAgo: 120 });
       await addAttempt(trackedId, { outcome: 'failed', minutesAgo: 1 });
@@ -341,8 +346,8 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
 
   describe('alerts and layout', () => {
     it('lists alerts, filters unread and marks them read', async () => {
-      const a = await db.insertAlert({ type: 'price_drop', severity: 'info', dedupeKey: 'a1', title: 'Price drop', message: '100000 → 90313' });
-      await db.insertAlert({ type: 'back_in_stock', severity: 'info', dedupeKey: 'b1', title: 'Back in stock', message: '0 → 5' });
+      const a = await alerts.insertAlert({ type: 'price_drop', severity: 'info', dedupeKey: 'a1', title: 'Price drop', message: '100000 → 90313' });
+      await alerts.insertAlert({ type: 'back_in_stock', severity: 'info', dedupeKey: 'b1', title: 'Back in stock', message: '0 → 5' });
       expect((await api('GET', '/alerts')).body.alerts).toHaveLength(2);
       expect((await api('POST', `/alerts/${a.id}/read`)).body.alert.readAt).not.toBeNull();
       expect((await api('GET', '/alerts?unread=true')).body.alerts.map(x => x.type)).toEqual(['back_in_stock']);
@@ -351,9 +356,9 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
     });
 
     it('shows layout versions and structure alerts only', async () => {
-      await db.recordLayoutVersion({ manifestHash: 'h1', schemaHash: 's1', revision: 633003, variant: 3, manifest, supported: true });
-      await db.insertAlert({ type: 'structure_changed', severity: 'warning', dedupeKey: 's1', title: 'Store layout changed', message: 'new key' });
-      await db.insertAlert({ type: 'price_drop', severity: 'info', dedupeKey: 'p1', title: 'Price drop', message: 'x' });
+      await layoutVersions.recordLayoutVersion({ manifestHash: 'h1', schemaHash: 's1', revision: 633003, variant: 3, manifest, supported: true });
+      await alerts.insertAlert({ type: 'structure_changed', severity: 'warning', dedupeKey: 's1', title: 'Store layout changed', message: 'new key' });
+      await alerts.insertAlert({ type: 'price_drop', severity: 'info', dedupeKey: 'p1', title: 'Price drop', message: 'x' });
       const { body } = await api('GET', '/layout');
       expect(body.versions[0]).toMatchObject({ revision: 633003, supported: true, seenCount: 1 });
       expect(body.alerts.map(x => x.type)).toEqual(['structure_changed']);

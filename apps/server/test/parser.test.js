@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { extractOffer, htmlToElement, parsePrice, parseStock } from '../src/parse.js';
+import { extractOffer, htmlToElement, parsePrice, parseStock } from '../src/scraper/parser.js';
 
 const OFFERS = join(import.meta.dirname, 'fixtures', 'offers');
 const load = name => ({

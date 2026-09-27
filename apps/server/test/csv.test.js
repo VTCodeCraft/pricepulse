@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CSV_COLUMNS, attemptsToCsv } from '../src/csv.js';
+import { CSV_COLUMNS, attemptsToCsv } from '../src/utils/csv.js';
 
 const row = overrides => ({
   store_product_id: 2331,

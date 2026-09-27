@@ -2,10 +2,10 @@
 // The store's own page code does the handshake, the temporary pass and the quote; we drive the page like a user,
 // then read the result from the DOM and check it against the quote response the page received.
 import { chromium } from 'playwright';
-import { config } from './config.js';
+import { config } from '../config.js';
 import { installFaults } from './faults.js';
 import { checkDomContract, hashManifest, hashSchema } from './layout.js';
-import { extractOffer, htmlToElement } from './parse.js';
+import { extractOffer, htmlToElement } from './parser.js';
 import { ScrapeError, runWithRetry, sleep } from './retry.js';
 import { getItem } from './store.js';
 

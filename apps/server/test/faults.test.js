@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertFaultInjectionAllowed, parseFaultPlan } from '../src/faults.js';
+import { assertFaultInjectionAllowed, parseFaultPlan } from '../src/scraper/faults.js';
 
 describe('fault injection', () => {
   it('parses a plan', () => {

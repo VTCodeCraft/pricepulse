@@ -11,7 +11,7 @@ let store;
 beforeAll(async () => {
   vi.stubEnv('STORE_REQUEST_GAP_MS', '0');
   vi.stubEnv('STORE_RETRY_BASE_DELAY_MS', '0');
-  store = await import('../src/store.js'); // config reads the env at import time
+  store = await import('../src/scraper/store.js'); // config reads the env at import time
 });
 afterEach(() => vi.unstubAllGlobals());
 

@@ -1,7 +1,7 @@
 // Builds the searchable product list. The store has no search, and every listing request returns a freshly
 // shuffled page, so we keep asking for pages until every product has been seen, then fetch any stragglers by id.
-import * as db from './db.js';
-import { getItem, getListingPage } from './store.js';
+import { upsertCatalogProducts } from '../db/repositories/products.repository.js';
+import { getItem, getListingPage } from '../scraper/store.js';
 
 const PAGE_SIZE = 60; // the store caps page size at 60
 let running = null;
@@ -41,7 +41,7 @@ export async function syncCatalog({ maxPages = 80, log = () => {} } = {}) {
     }
   }
 
-  await db.upsertCatalogProducts([...seen.values()]);
+  await upsertCatalogProducts([...seen.values()]);
   log(`catalog sync: ${seen.size} of ${count} products stored`);
   return { stored: seen.size, count };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SCRAPE_INTERVALS, isDue, nextAligned, nextSlotAfterRun } from '../src/schedule.js';
+import { SCRAPE_INTERVALS, isDue, nextAligned, nextSlotAfterRun } from '../src/scheduler/schedule.js';
 
 const iso = date => date.toISOString();
 const utc = text => new Date(`${text}Z`);

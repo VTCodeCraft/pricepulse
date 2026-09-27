@@ -2,7 +2,8 @@
 // If the database is unreachable the server still starts, and /api/health reports the database as unavailable.
 import { createApp } from './app.js';
 import { config } from './config.js';
-import { closeDb, migrate } from './db.js';
+import { closeDb } from './db/client.js';
+import { migrate } from './db/migrate.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 
