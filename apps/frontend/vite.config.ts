@@ -22,6 +22,7 @@ export default defineConfig({
         codeSplitting: {
           groups: [
             { name: 'react', test: inPackages('react', 'react-dom', 'react-router', 'react-router-dom', 'scheduler') },
+            { name: 'query', test: inPackages('@tanstack/react-query', '@tanstack/query-core') },
             {
               name: 'mui',
               test: inPackages('@mui/material', '@mui/system', '@mui/styled-engine', '@mui/utils', '@mui/private-theming', '@mui/icons-material', '@emotion'),

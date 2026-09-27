@@ -1,24 +1,28 @@
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
+import SearchOutlined from '@mui/icons-material/SearchOutlined';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Link from '@mui/material/Link';
-import { useColorScheme } from '@mui/material/styles';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { Link as RouterLink, useMatches } from 'react-router-dom';
+import { useThemeToggle } from '../../theme/useThemeToggle';
 
 type Crumb = { title: string; pathname: string };
+
+const SHORTCUT = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K';
 
 function hasTitle(handle: unknown): handle is { title: string } {
   return typeof handle === 'object' && handle !== null && typeof (handle as { title?: unknown }).title === 'string';
 }
 
-export function Header({ onOpenNavigation }: { onOpenNavigation: () => void }) {
+export function Header({ onOpenNavigation, onOpenCommands }: { onOpenNavigation: () => void; onOpenCommands: () => void }) {
   const crumbs: Crumb[] = useMatches().flatMap(match => (hasTitle(match.handle) ? [{ title: match.handle.title, pathname: match.pathname }] : []));
 
   return (
@@ -50,6 +54,20 @@ export function Header({ onOpenNavigation }: { onOpenNavigation: () => void }) {
           )}
         </Breadcrumbs>
         <Box sx={{ flexGrow: 1 }} />
+        <Button
+          onClick={onOpenCommands}
+          aria-keyshortcuts="Control+K Meta+K"
+          startIcon={<SearchOutlined fontSize="small" />}
+          sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: 'text.secondary', border: 1, borderColor: 'divider', fontWeight: 500, flexShrink: 0 }}
+        >
+          Commands
+          <Box component="kbd" sx={{ ml: 1.5, px: 0.75, borderRadius: 1, bgcolor: 'action.hover', fontFamily: 'inherit', fontSize: '0.75rem' }}>
+            {SHORTCUT}
+          </Box>
+        </Button>
+        <IconButton onClick={onOpenCommands} aria-label="Commands" aria-keyshortcuts="Control+K Meta+K" sx={{ display: { sm: 'none' } }}>
+          <SearchOutlined fontSize="small" />
+        </IconButton>
         <ThemeToggle />
       </Toolbar>
     </AppBar>
@@ -57,13 +75,12 @@ export function Header({ onOpenNavigation }: { onOpenNavigation: () => void }) {
 }
 
 function ThemeToggle() {
-  const { mode, systemMode, setMode } = useColorScheme();
-  if (!mode) return null; // not known until the first client render
-  const isDark = (mode === 'system' ? systemMode : mode) === 'dark';
+  const { ready, isDark, toggle } = useThemeToggle();
+  if (!ready) return null;
   const label = isDark ? 'Switch to light theme' : 'Switch to dark theme';
   return (
     <Tooltip title={label}>
-      <IconButton onClick={() => setMode(isDark ? 'light' : 'dark')} aria-label={label}>
+      <IconButton onClick={toggle} aria-label={label}>
         {isDark ? <LightModeOutlined fontSize="small" /> : <DarkModeOutlined fontSize="small" />}
       </IconButton>
     </Tooltip>

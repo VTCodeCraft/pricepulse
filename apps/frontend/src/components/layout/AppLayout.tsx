@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import { motion } from 'framer-motion';
-import { Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { LoadingSkeleton } from '../common/LoadingSkeleton';
 import { Header } from './Header';
@@ -8,9 +8,32 @@ import { Sidebar } from './Sidebar';
 
 const COLLAPSED_KEY = 'pricepulse.sidebarCollapsed';
 
+// Loaded on first use, so its actions (CSV export, the tracking dialog) add nothing to the first page load.
+const CommandPalette = lazy(() => import('./CommandPalette').then(m => ({ default: m.CommandPalette })));
+
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [commandsOpen, setCommandsOpen] = useState(false);
+  const [paletteLoaded, setPaletteLoaded] = useState(false);
+
+  const setCommands = (open: boolean) => {
+    if (open) setPaletteLoaded(true);
+    setCommandsOpen(open);
+  };
+
+  // Ctrl+K (⌘K on a Mac) toggles the command palette from anywhere.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteLoaded(true);
+        setCommandsOpen(open => !open);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
   const { pathname } = useLocation();
 
   const toggleCollapsed = () => {
@@ -47,7 +70,7 @@ export function AppLayout() {
         onMobileClose={() => setNavigationOpen(false)}
       />
       <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <Header onOpenNavigation={() => setNavigationOpen(true)} />
+        <Header onOpenNavigation={() => setNavigationOpen(true)} onOpenCommands={() => setCommands(true)} />
         <Box
           component="main"
           id="main-content"
@@ -61,6 +84,11 @@ export function AppLayout() {
           </motion.div>
         </Box>
       </Box>
+      {paletteLoaded && (
+        <Suspense fallback={null}>
+          <CommandPalette open={commandsOpen} onOpenChange={setCommands} />
+        </Suspense>
+      )}
     </Box>
   );
 }
