@@ -1,5 +1,5 @@
 // Every tunable lives here and can be overridden by an environment variable.
-// Defaults are sized for Render's free instance (0.15 CPU, 512 MB), measured in Phase 2.
+// Defaults are sized for Render's free instance (0.15 CPU, 512 MB), measured on Render (docs/deployment-notes.md).
 
 function int(name, fallback) {
   const raw = process.env[name];

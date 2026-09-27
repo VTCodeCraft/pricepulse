@@ -1,4 +1,4 @@
-// One scrape run: take the DB lock, pick the options to scrape, scrape them one by one with the Phase 3 scraper,
+// One scrape run: take the DB lock, pick the options to scrape, scrape them one by one with the browser scraper,
 // and record every attempt honestly (a failed attempt never carries a price or stock).
 import os from 'node:os';
 import { config } from '../config.js';

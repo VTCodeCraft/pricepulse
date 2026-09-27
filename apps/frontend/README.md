@@ -29,8 +29,8 @@ Root directory `apps/frontend`, framework preset Vite, build command `pnpm build
 ## Layout
 
 - `src/app/`: providers, router, 404.
-- `src/components/layout/`: sidebar, header, shell, command palette. `src/components/common/`: page header, section
-  card, stat, loading, empty and error states, status badge, label/value list, time-range toggle.
+- `src/components/layout/`: sidebar, header, shell, command palette. `src/components/common/`: page header, section,
+  stat, loading, empty and error states, status badge, label/value list, time-range toggle.
 - `src/lib/api/`: one Axios client (`client.ts`, turns every failure into an `ApiError` with the API's own code) and one
   module per backend area in use (`tracked.ts`, `runs.ts`, `catalog.ts`, `export.ts`, `system.ts`). Components never
   call Axios; they use the feature hooks.

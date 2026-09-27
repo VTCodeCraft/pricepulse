@@ -1,6 +1,6 @@
 # Server deployment notes
 
-## Render (measured 2026-09-26, Phase 2 gate)
+## Render (measured 2026-09-26)
 
 Service: `https://pricepulse-bgxj.onrender.com` — Docker, root directory `apps/server`, Singapore, Free plan,
 health check `/api/health`, auto-deploy from `main`.
@@ -18,7 +18,7 @@ health check `/api/health`, auto-deploy from `main`.
 Memory during 9 warm probes: container peak 454–494 MB (includes reclaimable file cache; 354 MB peak after a
 fresh start), Node RSS ≤ 130 MB. No crash or OOM. Every run closed the browser with 0 leftover processes.
 
-## Phase 2 gate results
+## Scraper probe results
 
 Same probe (real product page in Playwright; cookie dialog dismissed; exact option clicked and checked via
 `aria-pressed`; unlock + click until the page starts its handshake; pending prices re-checked; last quote response
@@ -35,7 +35,7 @@ checked for product/option; manifest-named price and stock read with `textConten
 All runs: handshakes 200, zero 401/403, final quote matched the requested product and option, no pending value
 returned (pending seen 5 times and re-checked), real quote 500s recovered by the page (3 times).
 
-## Supabase (verified 2026-09-26, Phase 5)
+## Supabase (verified 2026-09-26)
 
 - Project region ap-southeast-2 (Sydney); Render runs in Singapore, so every query crosses that link.
 - Connection: the **Session pooler** URI (IPv4, port 5432). The direct host is IPv6-only and unreachable from Render.
@@ -50,7 +50,7 @@ returned (pending seen 5 times and re-checked), real quote 500s recovered by the
   verified.
 - Migrations `001_init.sql` and `002_catalog_synced_at_nullable.sql` are applied; the server re-checks on every start.
 
-## Cold starts (measured 2026-09-26 and 27, Phase 6)
+## Cold starts (measured 2026-09-26 and 27)
 
 Each sample was taken after at least 15 minutes without inbound requests, with a client-side time limit and
 curl's default `Accept: */*`. The database was read directly, so checking a result did not wake the service.
@@ -81,7 +81,7 @@ app.
 cron-job.org reads at most 64 KB of a response (headers plus body) and records anything larger as
 `Failed (output too large)`.
 
-## cron-job.org jobs (Phase 6)
+## cron-job.org jobs
 
 | Job | Request | Headers | Schedule (UTC) |
 |---|---|---|---|
@@ -128,9 +128,9 @@ the decoy prices.
   sends `Accept: application/json`, and the wake call at minute 50 starts the instance before minute 55 and 0.
 - **Outbound is IPv4-only:** Supabase must be reached through its IPv4 pooler, not the IPv6-only direct host.
 
-## Phase 3 scraper in the production image
+## The scraper in the production image
 
-The Phase 3 scraper (`src/cli.js`) was run inside this Dockerfile's image on the dev machine with Render's measured
+The scraper (`src/cli.js`) was run inside this Dockerfile's image on the dev machine with Render's measured
 limits (`docker run --memory=512m --memory-swap=512m --cpus=0.15`, `NODE_ENV=production`):
 2179 / o1, 2852 / o1 and 2331 / o1 all succeeded on the first try in 18–37 s, and `--inject` was refused.
 

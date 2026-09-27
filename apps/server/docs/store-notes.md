@@ -77,10 +77,10 @@ Observed:
   check — ₹93,377 vs ₹90,313, ₹2,32,981 vs ₹2,11,444, ₹1,97,090 vs ₹1,71,438.
 - Prices move over hours: product 2331 / o1 was ₹96,021 at 07:10 and ₹90,313 at 13:27.
 
-Observed later (Phase 2, 22 probe runs): spaced `₹1 432`, euro `₹36.312,00`, and every character
+Observed later (22 probe runs): spaced `₹1 432`, euro `₹36.312,00`, and every character
 separated by NBSP + zero-width space (shown as ␣: `₹␣1␣,␣4␣3␣2`).
 
-Also observed (Phase 3, revision 633004): `priceCarrier: "split"` — the price is a `<strong>` with one `<span>`
+Also observed (revision 633004): `priceCarrier: "split"` — the price is a `<strong>` with one `<span>`
 per character and zero-width spaces between them; its `textContent` reads like the zero-width format above.
 
 Recon cross-check: during capture, the store's decoded quote was also read from React internals. It matched the
@@ -111,7 +111,7 @@ Observed:
 | priceCarrier, sellerTitle | text, true | text, true | **split**, false |
 
 - Same key set and value types in all three; identical on repeated requests within a revision.
-- The product page loads the manifest on every visit. The Phase 3 scraper followed 633003 → 633004 without changes.
+- The product page loads the manifest on every visit. The scraper followed 633003 → 633004 without changes.
 
 Not verified: the exact rotation schedule (three revisions seen; the last two lasted about 6 h each), and any
 change beyond renamed classes/tags/order/flags — no incompatible change has been seen.
@@ -128,7 +128,7 @@ Observed:
 | nginx 503 HTML page (not JSON) | 07:05 | continuing that burst |
 | 20 requests at 1 req/s | 07:08 | all 200 |
 | ~200 requests at ≤ 1 req/s | 13:26–13:45 | no 429 |
-| Handshake 429 ("upstream 429" in the page) | 16:48 (Phase 4) | during a run where every quote was failed on purpose: each failed quote makes the page run a new handshake, ~50 handshakes in ~3 min |
+| Handshake 429 ("upstream 429" in the page) | 16:48 | during a run where every quote was failed on purpose: each failed quote makes the page run a new handshake, ~50 handshakes in ~3 min |
 
 - No rate-limit headers on 200 responses. Slowest single response seen: 484 ms.
 
