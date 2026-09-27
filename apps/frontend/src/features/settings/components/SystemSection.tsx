@@ -41,11 +41,6 @@ export function SystemSection() {
           {data ? (data.database.status === 'ok' ? `Connected · ${data.database.migrations.length} migrations applied` : 'Unavailable') : '—'}
         </Detail>
         <Detail label="Server uptime">{data ? formatDistanceStrict(0, data.uptimeSeconds * 1000) : '—'}</Detail>
-        <Detail label="API URL">
-          <Box component="span" sx={monospace}>
-            {import.meta.env.VITE_API_URL ?? 'Not configured'}
-          </Box>
-        </Detail>
         <Detail label="Application">
           Version {__APP_VERSION__}
           {import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA && (

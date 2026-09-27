@@ -99,8 +99,8 @@ range (24H / 7D / 30D / 90D / All, exact hours back from when the page opened) a
 
 - Appearance (light, dark, system) uses MUI's colour-scheme state, the same one the header toggle uses; the choice is
   kept in this browser.
-- System asks `GET /api/health`: connected, unavailable or checking; database state; server uptime; the API URL and the
-  app version (from `package.json`, plus the commit when Vercel provides `VITE_VERCEL_GIT_COMMIT_SHA`).
+- System asks `GET /api/health`: connected, unavailable or checking; database state; server uptime; the app version
+  (from `package.json`, plus the commit when Vercel provides `VITE_VERCEL_GIT_COMMIT_SHA`).
 - Scraping shows what the API reports (active options, their intervals, the next scheduled scrape, the last run). The
   schedule is set on the server; nothing here changes it.
 - Notifications lists `GET /api/alerts`. The server can store alerts but does not create them yet, so there are no alert
