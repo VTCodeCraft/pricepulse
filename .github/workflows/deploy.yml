@@ -1,0 +1,96 @@
+# Production deployment, gated on CI: runs only when the CI workflow finished successfully for a push to main, and
+# deploys exactly the commit CI tested. Pull requests and other branches never deploy.
+#
+# Credentials come from the repository's `production` environment secrets and are never printed:
+#   RENDER_DEPLOY_HOOK_URL                         backend (Render deploy hook)
+#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID frontend (Vercel CLI)
+# Until a target's secrets are set its job only logs a notice, and the platform's own auto-deploy keeps deploying it.
+# Once they are set, turn that platform's auto-deploy off so each commit is deployed once (docs/deployment.md).
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One production deployment at a time, in commit order.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy the tested commit to Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          COMMIT: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::notice::RENDER_DEPLOY_HOOK_URL is not set; Render's auto-deploy handles the backend."
+            exit 0
+          fi
+          # The hook URL already carries its key as a query parameter; `ref` pins the deploy to the tested commit.
+          curl --fail --silent --show-error --max-time 60 -X POST -o /dev/null "${RENDER_DEPLOY_HOOK_URL}&ref=${COMMIT}"
+          echo "Render deploy of ${COMMIT} requested."
+
+  frontend:
+    needs: backend
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Check credentials
+        id: credentials
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::notice::Vercel secrets are not set; Vercel's Git integration handles the frontend."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.credentials.outputs.enabled == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - if: steps.credentials.outputs.enabled == 'true'
+        uses: pnpm/action-setup@v6
+      - if: steps.credentials.outputs.enabled == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # The Vercel project's settings (root directory apps/frontend, VITE_API_URL) are pulled, then the site is built
+      # here and the prebuilt output is deployed to production.
+      - if: steps.credentials.outputs.enabled == 'true'
+        name: Build and deploy to Vercel production
+        run: |
+          npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+          npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  smoke:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Production API answers
+        # A free Render instance may be asleep: allow for a cold start.
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --max-time 90 -H 'Accept: application/json' https://pricepulse-bgxj.onrender.com/api/health | grep -q '"ok":true'; then
+              echo "API healthy."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::The production API did not report healthy."
+          exit 1

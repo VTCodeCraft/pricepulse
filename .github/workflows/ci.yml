@@ -1,11 +1,15 @@
-# Foundation CI (Phase 0): install, lint, test, build on every push and PR.
-# Phase 13 extends this with a Postgres service for DB/API tests and deploy jobs (Render hook, Vercel).
+# CI: lint, typecheck, test (with a real PostgreSQL for the database and API suites) and build, on every push and
+# every pull request to main. Deployment is a separate workflow (deploy.yml) that only runs after this one passes on
+# main.
 name: CI
 
 on:
   push:
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -14,6 +18,23 @@ concurrency:
 jobs:
   lint-test-build:
     runs-on: ubuntu-latest
+    services:
+      # Throwaway database for apps/server/test/db.test.js and api.test.js (the name must end in _test). It lives only
+      # inside this job, so its password is not a secret.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pricepulse
+          POSTGRES_PASSWORD: pricepulse
+          POSTGRES_DB: pricepulse_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pricepulse -d pricepulse_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://pricepulse:pricepulse@localhost:5432/pricepulse_test
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -24,5 +45,15 @@ jobs:
           cache-dependency-path: '**/pnpm-lock.yaml'
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check workflow syntax and expressions (actionlint)
+        uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -color
