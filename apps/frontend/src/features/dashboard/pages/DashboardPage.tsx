@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { PageHeader } from '../../../components/common/PageHeader';
 import { TrackedProductsSection } from '../../products/components/TrackedProductsSection';
 import { TrackProductDialog } from '../../products/components/TrackProductDialog';
+import { ExportCsvButton } from '../../scraping/components/ExportCsvButton';
 import { KpiCards } from '../components/KpiCards';
 
 export function DashboardPage() {
@@ -16,9 +17,12 @@ export function DashboardPage() {
         title="Price Tracking Overview"
         subtitle="Monitor product prices, stock availability, and scraping health from one place."
         actions={
-          <Button variant="contained" startIcon={<Add />} onClick={() => setTracking(true)}>
-            Track Product
-          </Button>
+          <>
+            <ExportCsvButton variant="outlined" />
+            <Button variant="contained" startIcon={<Add />} onClick={() => setTracking(true)}>
+              Track Product
+            </Button>
+          </>
         }
       />
       <Stack spacing={3}>

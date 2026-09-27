@@ -1,4 +1,3 @@
-import DownloadOutlined from '@mui/icons-material/DownloadOutlined';
 import FilterAltOffOutlined from '@mui/icons-material/FilterAltOffOutlined';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import Alert from '@mui/material/Alert';
@@ -12,9 +11,9 @@ import { EmptyState } from '../../../components/common/EmptyState';
 import { ErrorState } from '../../../components/common/ErrorState';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
 import { PageHeader } from '../../../components/common/PageHeader';
+import { ExportCsvButton } from '../components/ExportCsvButton';
 import { LogFilters } from '../components/LogFilters';
 import { ScrapeLogTable } from '../components/ScrapeLogTable';
-import { useCsvExport } from '../hooks/useCsvExport';
 import { useScrapeLog } from '../hooks/useScrapeLog';
 import { ATTEMPT_LOG_LIMIT, NO_FILTERS, filterLog } from '../scrapeLog';
 
@@ -27,7 +26,6 @@ export function LogsPage() {
   const [filters, setFilters] = useState(() => ({ ...NO_FILTERS, trackedId: Number.isInteger(trackedParam) && trackedParam > 0 ? trackedParam : null }));
   const [openedAt] = useState(() => new Date()); // time ranges count back from when the page opened
   const log = useScrapeLog();
-  const exportCsv = useCsvExport();
 
   const options = log.tracked.data ?? [];
   // An id that is not one of the options (a hand-edited link) is ignored rather than matching nothing.
@@ -39,11 +37,7 @@ export function LogsPage() {
       <PageHeader
         title="Scrape Logs"
         subtitle={`Every scrape attempt of every option, failures included. Times are in your time zone (${timeZone}).`}
-        actions={
-          <Button variant="contained" startIcon={<DownloadOutlined />} loading={exportCsv.isPending} loadingPosition="start" onClick={() => exportCsv.mutate()}>
-            Export CSV
-          </Button>
-        }
+        actions={<ExportCsvButton />}
       />
       <Card sx={{ p: 2.5 }}>
         {log.tracked.isPending || log.isPending ? (

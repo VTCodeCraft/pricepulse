@@ -75,8 +75,9 @@ and the charts load only with the pages that use them, and the command palette o
 - A row (click or Enter) opens the attempt: start and finish times (local and UTC), each try, the error code and message
   as recorded, and its run (`GET /api/runs/:id`). The run's outcome counts come from its attempts, because an abandoned
   run never writes its counters.
-- Export CSV downloads `GET /api/export.csv`, which the server generates (every finished attempt). The API does not
-  expose `Content-Disposition` to other origins, so the file name follows the server's pattern with the browser's time.
+- Export CSV (on the dashboard and here) downloads `GET /api/export.csv`, which the server generates (every finished
+  attempt). The API does not expose `Content-Disposition` to other origins, so the file name follows the server's
+  pattern with the browser's time.
 
 ## Analytics
 
