@@ -73,10 +73,20 @@ jobs:
       # here and the prebuilt output is deployed to production.
       - if: steps.credentials.outputs.enabled == 'true'
         name: Build and deploy to Vercel production
+        # Each command's output goes to the log; if one fails, its last lines are also written as an annotation so the
+        # cause is visible without opening the log (GitHub masks secrets in both).
         run: |
-          npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
-          npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
-          npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          vercel() {
+            if ! npx --yes vercel@latest "$@" --token="$VERCEL_TOKEN" > vercel.log 2>&1; then
+              cat vercel.log
+              echo "::error::vercel $1 failed: $(grep -v '^\s*$' vercel.log | tail -n 8 | tr '\n' ' ' | cut -c1-900)"
+              exit 1
+            fi
+            cat vercel.log
+          }
+          vercel pull --yes --environment=production
+          vercel build --prod
+          vercel deploy --prebuilt --prod
 
   smoke:
     needs: [backend, frontend]
