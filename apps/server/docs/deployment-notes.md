@@ -98,6 +98,13 @@ cron-job.org reads at most 64 KB of a response (headers plus body) and records a
 
 History (UTC):
 
+- 2026-09-27 19:50 to 2026-09-28 05:00, with `Accept: application/json` on both jobs: while the instance slept,
+  every cron-job.org call got Render's loading page within about 1 s ("output too large") and did not start the
+  instance. No run was created between 19:01 and 05:01, so the 20:00, 22:00, 00:00, 02:00 and 04:00 slots were
+  missed. At 05:28 two curl requests to the sleeping instance, with `Accept: application/json` and a curl or a
+  `Mozilla/4.0 (compatible)` User-Agent, were both held about 24 s and answered by the app, so neither header
+  explains it. `.github/workflows/scrape-trigger.yml` was added as a second trigger that waits for a cold start.
+
 - 2026-09-26 20:01 to 2026-09-27 06:01, without the `Accept` header: every call that met a sleeping or starting
   instance failed with "output too large". No run was created between 21:01 and 06:44, so the 22:00, 00:00, 02:00,
   04:00 and 06:00 slots were missed.

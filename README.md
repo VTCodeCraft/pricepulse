@@ -149,6 +149,9 @@ No real values are committed. Production values live in the Render and Vercel da
   arrived. A call with nothing due is still recorded as an empty run.
 - **Wake-up:** a second job calls `GET /api/health` at minutes 50 and 55 to wake the free instance before the
   scrape call.
+- **Backup trigger:** `.github/workflows/scrape-trigger.yml` makes the same call at minute 7 with a 3-minute timeout,
+  long enough for a cold start. It needs the repository secret `CRON_SECRET`. A second call in the same hour finds
+  nothing due, or gets `409` while a run is going.
 - **Missed calls:** an overdue option runs once and returns to its own slots. Only one run can be active at a time
   (`409` otherwise).
 - **Manual:** "Refresh price" in the UI (`POST /api/tracked/:id/scrape`), limited by the per-option cooldown.
