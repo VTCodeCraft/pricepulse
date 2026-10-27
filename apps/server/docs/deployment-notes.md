@@ -2,8 +2,9 @@
 
 ## Render (measured 2026-09-26)
 
-Service: `https://pricepulse-bgxj.onrender.com` — Docker, root directory `apps/server`, Singapore, Free plan,
-health check `/api/health`, auto-deploy from `main`.
+Service: `https://pricepulse-3zvz.onrender.com` since 2026-10-26 — Docker, root directory `apps/server`, Free plan,
+health check `/api/health`. The first service, `https://pricepulse-bgxj.onrender.com`, was suspended when its workspace
+used up its free instance hours; the measurements below were taken on it.
 
 | Item | Value |
 |---|---|

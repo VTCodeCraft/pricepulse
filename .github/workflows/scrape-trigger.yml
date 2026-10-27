@@ -31,7 +31,7 @@ jobs:
           for attempt in 1 2 3; do
             code=$(curl -s -o response.json -w '%{http_code}' --max-time 180 -X POST \
               -H 'Accept: application/json' -H "Authorization: Bearer ${CRON_SECRET}" \
-              https://pricepulse-bgxj.onrender.com/api/scrape/run || true)
+              https://pricepulse-3zvz.onrender.com/api/scrape/run || true)
             echo "attempt ${attempt}: HTTP ${code} $(head -c 300 response.json 2>/dev/null)"
             case "$code" in 202|409) exit 0 ;; esac
             sleep 30

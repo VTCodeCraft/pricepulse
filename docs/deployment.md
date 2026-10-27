@@ -2,7 +2,7 @@
 
 | Part | Host | Source |
 |---|---|---|
-| API, scheduler, scraper | Render (Docker, root directory `apps/server`) | `https://pricepulse-bgxj.onrender.com` |
+| API, scheduler, scraper | Render (Docker, root directory `apps/server`) | `https://pricepulse-3zvz.onrender.com` |
 | Frontend | Vercel (root directory `apps/frontend`, `VITE_API_URL` set in the project) | `https://pricepulse-smoky.vercel.app` |
 | Database | Supabase PostgreSQL (session pooler, verified TLS) | migrations run on every server start |
 | Schedule | cron-job.org calls `POST /api/scrape/run` with `CRON_SECRET` | the server decides what is due |

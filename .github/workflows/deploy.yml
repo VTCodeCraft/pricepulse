@@ -48,7 +48,7 @@ jobs:
         # A free Render instance may be asleep: allow for a cold start.
         run: |
           for _ in 1 2 3 4 5 6; do
-            if curl --fail --silent --show-error --max-time 90 -H 'Accept: application/json' https://pricepulse-bgxj.onrender.com/api/health | grep -q '"ok":true'; then
+            if curl --fail --silent --show-error --max-time 90 -H 'Accept: application/json' https://pricepulse-3zvz.onrender.com/api/health | grep -q '"ok":true'; then
               echo "API healthy."
               curl --fail --silent --show-error --max-time 30 -o /dev/null https://pricepulse-smoky.vercel.app/ && echo "Site up."
               exit 0

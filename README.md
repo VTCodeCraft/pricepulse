@@ -7,7 +7,7 @@ and a log of every attempt, failures included.
 | | |
 |---|---|
 | Live site | <https://pricepulse-smoky.vercel.app> |
-| API | <https://pricepulse-bgxj.onrender.com/api/health> (free Render instance: the first request after idle can take ~50 s) |
+| API | <https://pricepulse-3zvz.onrender.com/api/health> (free Render instance: the first request after idle can take ~50 s) |
 | Design note | [`docs/design-note.md`](docs/design-note.md): reliability, trade-offs, AI mistakes |
 | AI usage record | [`docs/AI_LOG.md`](docs/AI_LOG.md) |
 
