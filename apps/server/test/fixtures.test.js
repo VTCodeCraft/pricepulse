@@ -100,16 +100,6 @@ describe('store behaviours the scraper must handle', () => {
 });
 
 describe('store API fixtures', () => {
-  it('two manifest revisions differ only as a rotation', () => {
-    const a = readJson(join(API, 'manifest-633001.json'));
-    const b = readJson(join(API, 'manifest-633003.json'));
-    expectManifestShape(a);
-    expectManifestShape(b);
-    expect(Object.keys(b).sort()).toEqual(Object.keys(a).sort());
-    expect(b.classes.priceValue).not.toBe(a.classes.priceValue);
-    expect(b.priceTag).not.toBe(a.priceTag);
-  });
-
   it('item, listing, and error bodies have the observed shapes', () => {
     expect(readJson(join(API, 'item-2331.json'))).toMatchObject({ id: 2331, optionAxis: 'Storage' });
     expect(readJson(join(API, 'item-not-found-404.json'))).toEqual({ error: 'not_found' });

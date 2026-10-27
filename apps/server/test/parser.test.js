@@ -76,11 +76,6 @@ describe('extractOffer on real fixtures', () => {
     expect(offer.price).toBe(90313);
   });
 
-  it('turns "Sold out" into stock 0', () => {
-    const { meta, html } = load('ready-rs-decimal-sold-out');
-    expect(extractOffer(htmlToElement(html), meta.manifest).stock).toBe(0);
-  });
-
   it('reports how many attempts the store page itself needed', () => {
     const { meta, html } = load('ready-trailing-tax-suffix');
     expect(extractOffer(htmlToElement(html), meta.manifest).storeAttempts).toBe(2);

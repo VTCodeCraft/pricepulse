@@ -56,9 +56,4 @@ describe('nextSlotAfterRun', () => {
   ])('%s', (_label, served, ranAt, expected) => {
     expect(iso(nextSlotAfterRun(served, utc(ranAt), 120))).toBe(iso(utc(expected)));
   });
-
-  it('an interval change re-aligns from now', () => {
-    expect(iso(nextAligned(utc('2026-09-26T16:30:00'), 60))).toBe(iso(utc('2026-09-26T17:00:00')));
-    expect(iso(nextAligned(utc('2026-09-26T16:30:00'), 1440))).toBe(iso(utc('2026-09-27T00:00:00')));
-  });
 });

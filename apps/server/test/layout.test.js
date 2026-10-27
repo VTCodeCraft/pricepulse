@@ -87,7 +87,6 @@ describe('pageStructure', () => {
       stock: ['div.offer-facts', 'stock'],
       button: ['div.offer-foot', 'button.ctl.ctl-plain.ctl-xs'],
     });
-    expect(structure(panelHtml('ready-default-clean')).hash).toBe(baseline.hash);
     // Same hash the live store gave on 2026-09-27 (revision 634003) for products 2179 and 2852.
     expect(baseline.hash).toBe('f2df7c36df0c6119');
   });

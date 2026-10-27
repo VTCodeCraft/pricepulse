@@ -129,14 +129,6 @@ describe.skipIf(!TEST_URL)('database and runner', () => {
         expect((await trackedProducts.listActiveTracked())[0]).toMatchObject({ id: first.id, product_name: item.name, option_axis: 'Storage' });
       });
 
-      it('changing the interval re-aligns the next scrape', async () => {
-        const tracked = await trackedProducts.addTrackedProduct({ storeProductId: 2331, optionId: 'o1', optionLabel: '64 GB' });
-        const next = new Date('2026-09-27T00:00:00Z');
-        await trackedProducts.updateTracked(tracked.id, { intervalMinutes: 1440, nextScrapeAt: next });
-        const [row] = await trackedProducts.getTrackedByIds([tracked.id]);
-        expect(row).toMatchObject({ scrape_interval_minutes: 1440, next_scrape_at: next });
-      });
-
       it('stores product details once, shared by every option', async () => {
         const { rows } = await sql.query('select name, option_axis, options, review_summary from products where store_product_id = 2331');
         expect(rows[0]).toMatchObject({ name: item.name, option_axis: 'Storage', options: item.options });

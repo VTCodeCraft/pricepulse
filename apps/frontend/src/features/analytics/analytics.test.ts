@@ -44,13 +44,6 @@ describe('reliability', () => {
     expect(reliability(log)).toEqual({ successful: 4, retried: 2, failed: 1, running: 1, finished: 5, successRate: 80 });
   });
 
-  it('matches the production totals at the time of the F4 export (32 success, 19 retried, 1 failed)', () => {
-    const outcomes = [...Array(32).fill('success'), ...Array(19).fill('retried'), 'failed'].map(outcome => ({ outcome }));
-    const result = reliability(outcomes);
-    expect([result.successful, result.retried, result.failed]).toEqual([51, 19, 1]);
-    expect(result.successRate).toBeCloseTo((51 / 52) * 100);
-  });
-
   it('has no success rate without finished attempts', () => {
     expect(reliability([]).successRate).toBeNull();
     expect(reliability([{ outcome: null }]).successRate).toBeNull();

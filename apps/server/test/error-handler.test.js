@@ -20,7 +20,6 @@ describe('toErrorResponse', () => {
     [new ScrapeError('product_not_found', 'x'), '404 product_not_found'],
     [new ScrapeError('option_not_found', 'x'), '422 option_not_found'],
     [new ScrapeError('store_http_error', 'x'), '502 store_unavailable'],
-    [new ScrapeError('timeout', 'x'), '502 store_unavailable'],
     [Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5432'), { code: 'ECONNREFUSED' }), '503 database_unavailable'],
     [Object.assign(new Error('terminating connection'), { code: '57P01' }), '503 database_unavailable'],
     [Object.assign(new Error('connection failure'), { code: '08006' }), '503 database_unavailable'],

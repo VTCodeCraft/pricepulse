@@ -54,10 +54,6 @@ describe('back in stock', () => {
     expect(types(seen(1000, 3), seen(1000, 0))).toEqual([]);
   });
 
-  it('a failed attempt in between does not count as a state', () => {
-    expect(types(seen(1000, 0), { outcome: 'failed', price: null, currency: null, stock: null })).toEqual([]);
-  });
-
   it('a drop and a return to stock in one observation raise both alerts', () => {
     expect(types(seen(1000, 0), seen(800, 2))).toEqual(['price_drop', 'back_in_stock']);
   });

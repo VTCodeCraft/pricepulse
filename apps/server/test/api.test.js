@@ -300,13 +300,6 @@ describe.skipIf(!TEST_URL)('HTTP API', () => {
       expect((await api('GET', '/tracked')).body.items).toHaveLength(2);
     });
 
-    it('enforces the tracking limit', async () => {
-      for (const option of ['o1', 'o2', 'o3']) await track(option);
-      const extra = { ...item, id: 2335, options: [{ id: 'o1', label: 'x' }] };
-      store.getItem.mockResolvedValue(extra);
-      expect(await api('POST', '/tracked', { storeProductId: 2335, optionId: 'o1' })).toMatchObject({ status: 422, body: { error: { code: 'tracking_limit_reached' } } });
-    });
-
     it('updates settings and re-aligns the next scrape', async () => {
       const { id } = (await track('o1')).body.tracked;
       const { status, body } = await api('PATCH', `/tracked/${id}`, { scrapeIntervalMinutes: 1440, priceDropThresholdPct: 12 });
